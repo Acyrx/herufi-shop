@@ -1,65 +1,212 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useLang } from "@/lib/i18n/context";
+import {
+  ArrowRight,
+  BarChart3,
+  Building2,
+  CheckCircle,
+  Package,
+  ShoppingCart,
+  Sparkles,
+  Store,
+  Users,
+} from "lucide-react";
+import Link from "next/link";
+
+export default function LandingPage() {
+  const { t, lang, setLang } = useLang();
+
+  const FEATURES = [
+    { icon: Package, title: "Smart Inventory", desc: lang === "sw" ? "Fuatilia hisa, tarehe za kuisha, na mapendekezo ya kujaza upya kutoka AI." : "Track stock, expiry dates, and get AI-powered restock recommendations." },
+    { icon: ShoppingCart, title: lang === "sw" ? "Mfumo wa Mauzo" : "Point of Sale", desc: lang === "sw" ? "Kiolesura cha haraka cha muuzaji na scan ya barcode, risiti na hali ya nje ya mtandao." : "Fast cashier interface with barcode scanning, receipts and offline mode." },
+    { icon: BarChart3, title: lang === "sw" ? "Takwimu na Ripoti" : "Analytics & Reports", desc: lang === "sw" ? "Dashibodi nzuri na grafu za mapato, KPI na ripoti zinazoweza kupakuliwa." : "Beautiful dashboards with revenue charts, KPIs and exportable reports." },
+    { icon: Users, title: lang === "sw" ? "Wateja na Wafanyakazi" : "Customers & Employees", desc: lang === "sw" ? "Pointi za uaminifu, usimamizi wa mkopo, na ufikiaji wa wafanyakazi kulingana na jukumu." : "Loyalty points, credit management, and role-based employee access." },
+    { icon: Building2, title: lang === "sw" ? "Maduka Mengi" : "Multi-Shop", desc: lang === "sw" ? "Simamia matawi mengi kutoka akaunti moja na ulinganishe utendaji." : "Manage multiple branches from one account with performance comparisons." },
+    { icon: Sparkles, title: lang === "sw" ? "Maarifa ya AI" : "AI Business Insights", desc: lang === "sw" ? "Gemini AI inachambua data yako na kutoa ushauri wa biashara unaoweza kufanywa." : "Gemini AI analyzes your data and gives actionable business advice." },
+  ];
+
+  const PLANS = [
+    {
+      name: lang === "sw" ? "Msingi" : "Starter",
+      price: lang === "sw" ? "Bure" : "Free",
+      period: lang === "sw" ? "Milele" : "Forever",
+      features: lang === "sw"
+        ? ["Duka 1", "Bidhaa 100", "Muuzaji 2", "Analytics msingi"]
+        : ["1 shop", "100 products", "2 cashiers", "Basic analytics"],
+      cta: lang === "sw" ? "Anza Sasa" : "Get Started",
+      href: "/signup",
+    },
+    {
+      name: "Business",
+      price: "TZS 25,000",
+      period: lang === "sw" ? "/mwezi" : "/month",
+      features: lang === "sw"
+        ? ["Maduka 5", "Bidhaa zisizo na kikomo", "Waajiriwa wote", "Analytics kamili", "Usaidizi AI"]
+        : ["5 shops", "Unlimited products", "All employees", "Full analytics", "AI insights"],
+      cta: lang === "sw" ? "Jaribu Bure" : "Try Free",
+      href: "/signup",
+      highlight: true,
+    },
+    {
+      name: "Enterprise",
+      price: lang === "sw" ? "Wasiliana" : "Contact Us",
+      period: "",
+      features: lang === "sw"
+        ? ["Maduka yasiyohesabika", "Muundo maalum", "Mafunzo ya timu", "Usaidizi 24/7"]
+        : ["Unlimited shops", "Custom setup", "Team training", "24/7 support"],
+      cta: lang === "sw" ? "Wasiliana Nasi" : "Contact Us",
+      href: "/signup",
+    },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Nav */}
+      <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <Store size={18} className="text-white" />
+            </div>
+            <span className="font-bold text-lg">Herufi</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Language toggle */}
+            <div className="flex gap-1 bg-muted rounded-lg p-0.5">
+              <button
+                onClick={() => setLang("en")}
+                className={`px-2.5 py-1 text-xs rounded-md transition-colors ${lang === "en" ? "bg-card text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                🇬🇧 EN
+              </button>
+              <button
+                onClick={() => setLang("sw")}
+                className={`px-2.5 py-1 text-xs rounded-md transition-colors ${lang === "sw" ? "bg-card text-foreground shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                🇹🇿 SW
+              </button>
+            </div>
+            <Link href="/shop" className="hidden sm:inline text-sm text-muted-foreground hover:text-foreground transition-colors">
+              {t.nav.shop}
+            </Link>
+            <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              {t.landing.signIn}
+            </Link>
+            <Link href="/signup"
+              className="inline-flex items-center gap-1.5 h-9 px-4 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              {t.nav.getStarted} <ArrowRight size={14} />
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </nav>
+
+      {/* Hero */}
+      <section className="max-w-6xl mx-auto px-4 py-24 text-center">
+        <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-6">
+          <Sparkles size={14} />
+          {t.landing.badge}
         </div>
-      </main>
+        <h1 className="text-4xl sm:text-6xl font-bold text-foreground leading-tight mb-6">
+          {t.landing.heroTitle}<br />
+          <span className="text-primary">{t.landing.heroHighlight}</span>
+        </h1>
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+          {t.landing.heroDesc}
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <Link href="/signup"
+            className="inline-flex items-center gap-2 h-12 px-8 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 shadow-lg shadow-primary/25 transition-all"
+          >
+            {t.landing.startFree} <ArrowRight size={16} />
+          </Link>
+          <Link href="/shop"
+            className="inline-flex items-center gap-2 h-12 px-8 border border-border text-foreground font-medium rounded-xl hover:bg-muted transition-colors"
+          >
+            <ShoppingCart size={16} />
+            {t.catalog.shopNow}
+          </Link>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-6 mt-10 text-sm text-muted-foreground">
+          {[t.landing.noCreditCard, t.landing.freeTrial, t.landing.cancelAnytime].map((txt) => (
+            <span key={txt} className="flex items-center gap-1.5">
+              <CheckCircle size={14} className="text-primary" />
+              {txt}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="max-w-6xl mx-auto px-4 py-20">
+        <h2 className="text-3xl font-bold text-center mb-3">{t.landing.features}</h2>
+        <p className="text-muted-foreground text-center mb-12">{t.landing.featuresDesc}</p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {FEATURES.map((f) => {
+            const Icon = f.icon;
+            return (
+              <div key={f.title} className="p-6 bg-card border border-border rounded-xl hover:border-primary/30 hover:shadow-md transition-all">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                  <Icon size={20} className="text-primary" />
+                </div>
+                <h3 className="font-bold text-foreground mb-2">{f.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="bg-muted/30 py-20">
+        <div className="max-w-5xl mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-3">{t.landing.pricing}</h2>
+          <p className="text-muted-foreground text-center mb-12">{t.landing.pricingDesc}</p>
+          <div className="grid sm:grid-cols-3 gap-6">
+            {PLANS.map((plan) => (
+              <div key={plan.name} className={`p-6 rounded-xl border ${(plan as any).highlight ? "border-primary bg-primary shadow-lg shadow-primary/20 text-white" : "border-border bg-card"}`}>
+                <h3 className={`font-bold text-lg mb-1 ${(plan as any).highlight ? "text-white" : "text-foreground"}`}>{plan.name}</h3>
+                <div className="mb-6">
+                  <span className={`text-3xl font-bold ${(plan as any).highlight ? "text-white" : "text-foreground"}`}>{plan.price}</span>
+                  <span className={`text-sm ${(plan as any).highlight ? "text-white/70" : "text-muted-foreground"}`}>{plan.period}</span>
+                </div>
+                <ul className="space-y-2 mb-6">
+                  {plan.features.map((f) => (
+                    <li key={f} className={`flex items-center gap-2 text-sm ${(plan as any).highlight ? "text-white/90" : "text-muted-foreground"}`}>
+                      <CheckCircle size={14} className={(plan as any).highlight ? "text-white" : "text-primary"} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link href={plan.href}
+                  className={`block w-full text-center py-2.5 rounded-lg font-medium text-sm transition-colors ${(plan as any).highlight ? "bg-white text-primary hover:bg-white/90" : "bg-primary text-white hover:bg-primary/90"}`}
+                >
+                  {plan.cta}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-12">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+              <Store size={14} className="text-white" />
+            </div>
+            <span className="font-bold">Herufi</span>
+          </div>
+          <p className="text-sm text-muted-foreground">© 2026 Herufi. {t.landing.footer} 🇹🇿</p>
+          <div className="flex gap-4 text-sm text-muted-foreground">
+            <Link href="#" className="hover:text-foreground">Privacy</Link>
+            <Link href="#" className="hover:text-foreground">Terms</Link>
+            <Link href="/shop" className="hover:text-foreground">{t.nav.shop}</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -1,0 +1,58 @@
+{
+  "name": "Herufi — Smart Business",
+  "short_name": "Herufi",
+  "description": "POS, inventory, analytics, and AI insights for businesses in Tanzania and Africa",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#16a34a",
+  "orientation": "portrait-primary",
+  "lang": "sw",
+  "categories": ["business", "productivity", "finance"],
+  "icons": [
+    {
+      "src": "/api/icon/192",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/api/icon/512",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/api/icon/512",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Shop",
+      "short_name": "Shop",
+      "description": "Browse products",
+      "url": "/shop",
+      "icons": [{ "src": "/api/icon/96", "sizes": "96x96", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Business dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/api/icon/96", "sizes": "96x96", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "POS",
+      "short_name": "POS",
+      "description": "Point of Sale",
+      "url": "/pos",
+      "icons": [{ "src": "/api/icon/96", "sizes": "96x96", "type": "image/svg+xml" }]
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
