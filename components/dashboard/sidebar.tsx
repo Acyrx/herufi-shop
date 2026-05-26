@@ -13,6 +13,7 @@ import {
   ClipboardList,
   CreditCard,
   Home,
+  LogOut,
   Package,
   Plus,
   Settings,
@@ -35,7 +36,7 @@ export function Sidebar() {
   const [shopOpen, setShopOpen] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
   const { t } = useLang();
-  const { shops, currentShop, setCurrentShop, loading } = useShop();
+  const { shops, currentShop, setCurrentShop, loading, isEmployeeMode, employeeSession, hasPermission, exitEmployeeMode } = useShop();
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -48,28 +49,41 @@ export function Sidebar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const navItems = [
-    { href: "/dashboard", label: t.nav.dashboard, icon: Home },
-    { href: "/shops", label: t.nav.myShops, icon: Building2 },
-    { href: "/inventory", label: t.nav.inventory, icon: Package },
-    { href: "/pos", label: t.nav.pos, icon: ShoppingCart },
-    { href: "/orders", label: t.nav.orders, icon: ClipboardList },
-    { href: "/sales", label: "Sales", icon: TrendingUp },
-    { href: "/customers", label: t.nav.customers, icon: Users },
-    { href: "/employees", label: t.nav.employees, icon: UserSquare2 },
-    { href: "/analytics", label: t.nav.analytics, icon: BarChart3 },
-    { href: "/financial", label: t.nav.financial, icon: CreditCard },
-    { href: "/reports", label: t.nav.reports, icon: ClipboardList },
-    { href: "/notifications", label: t.nav.notifications, icon: Bell },
-    { href: "/ai", label: t.nav.aiAssistant, icon: Sparkles },
-    { href: "/settings", label: t.nav.settings, icon: Settings },
+  // All nav items with optional permission/owner requirements
+  const allNavItems = [
+    { href: "/dashboard",     label: t.nav.dashboard,   icon: Home,        perm: null,               ownerOnly: false },
+    { href: "/shops",         label: t.nav.myShops,     icon: Building2,   perm: null,               ownerOnly: true  },
+    { href: "/inventory",     label: t.nav.inventory,   icon: Package,     perm: "view_inventory",   ownerOnly: false },
+    { href: "/pos",           label: t.nav.pos,         icon: ShoppingCart,perm: null,               ownerOnly: false },
+    { href: "/orders",        label: t.nav.orders,      icon: ClipboardList,perm: "view_orders",     ownerOnly: false },
+    { href: "/sales",         label: "Sales",           icon: TrendingUp,  perm: "view_reports",     ownerOnly: false },
+    { href: "/customers",     label: t.nav.customers,   icon: Users,       perm: "view_customers",   ownerOnly: false },
+    { href: "/employees",     label: t.nav.employees,   icon: UserSquare2, perm: null,               ownerOnly: true  },
+    { href: "/analytics",     label: t.nav.analytics,   icon: BarChart3,   perm: "view_reports",     ownerOnly: false },
+    { href: "/financial",     label: t.nav.financial,   icon: CreditCard,  perm: "view_financial",   ownerOnly: false },
+    { href: "/reports",       label: t.nav.reports,     icon: ClipboardList,perm: "view_reports",    ownerOnly: false },
+    { href: "/notifications", label: t.nav.notifications,icon: Bell,       perm: null,               ownerOnly: false },
+    { href: "/ai",            label: t.nav.aiAssistant, icon: Sparkles,    perm: null,               ownerOnly: false },
+    { href: "/settings",      label: t.nav.settings,    icon: Settings,    perm: null,               ownerOnly: true  },
   ];
+
+  const navItems = allNavItems.filter(item => {
+    if (isEmployeeMode) {
+      if (item.ownerOnly) return false;
+      if (item.perm && !hasPermission(item.perm)) return false;
+    }
+    return true;
+  });
 
   function handleSwitchShop(shop: Shop) {
     setCurrentShop(shop);
     setShopOpen(false);
-    // Reload current page to pick up new shop context
     router.refresh();
+  }
+
+  function handleSwitchWorkspace() {
+    exitEmployeeMode();
+    router.push("/choose-context");
   }
 
   return (
@@ -79,7 +93,7 @@ export function Sidebar() {
         collapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Shop Switcher */}
+      {/* Shop / Employee context switcher */}
       <div
         ref={dropRef}
         className={cn(
@@ -89,37 +103,34 @@ export function Sidebar() {
       >
         {collapsed ? (
           <button
-            onClick={() => {
-              setCollapsed(false);
-              setShopOpen(true);
-            }}
+            onClick={() => { setCollapsed(false); if (!isEmployeeMode) setShopOpen(true); }}
             className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center mx-auto"
             title={currentShop?.name ?? "Select shop"}
           >
-            <div className="rounded-lg flex items-center justify-center">
-              <Image
-                src="/logo/favicon.png"
-                width={50}
-                height={50}
-                alt="logo"
-                className="rounded-xl"
-              />
-            </div>
+            <Image src="/logo/favicon.png" width={50} height={50} alt="logo" className="rounded-xl" />
           </button>
+        ) : isEmployeeMode ? (
+          /* ── Employee mode banner ── */
+          <div className="flex items-center gap-3 p-2">
+            <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+              <Store size={16} className="text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-white text-sm truncate leading-tight">
+                {employeeSession?.shopName ?? currentShop?.name ?? "—"}
+              </p>
+              <p className="text-[10px] text-sidebar-foreground/50 capitalize leading-tight">
+                {employeeSession?.role?.replace(/_/g, " ") ?? "Employee"}
+              </p>
+            </div>
+          </div>
         ) : (
+          /* ── Owner shop switcher ── */
           <button
             onClick={() => setShopOpen((o) => !o)}
             className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-muted transition-colors"
           >
-            <div className="rounded-lg flex items-center justify-center">
-              <Image
-                src="/logo/favicon.png"
-                width={42}
-                height={42}
-                alt="logo"
-                className="rounded-xl"
-              />
-            </div>
+            <Image src="/logo/favicon.png" width={42} height={42} alt="logo" className="rounded-xl" />
             <div className="flex-1 text-left min-w-0">
               <p className="font-bold text-white text-sm truncate leading-tight">
                 {loading ? "Loading…" : currentShop?.name ?? "Select shop"}
@@ -130,22 +141,17 @@ export function Sidebar() {
             </div>
             <ChevronDown
               size={14}
-              className={cn(
-                "text-sidebar-foreground/50 transition-transform shrink-0",
-                shopOpen && "rotate-180"
-              )}
+              className={cn("text-sidebar-foreground/50 transition-transform shrink-0", shopOpen && "rotate-180")}
             />
           </button>
         )}
 
-        {/* Shop Dropdown */}
-        {shopOpen && !collapsed && (
+        {/* Owner shop dropdown */}
+        {shopOpen && !collapsed && !isEmployeeMode && (
           <div className="absolute top-full left-3 right-3 mt-1 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
             <div className="p-2 max-h-60 overflow-y-auto">
               {shops.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-3">
-                  No shops yet
-                </p>
+                <p className="text-xs text-muted-foreground text-center py-3">No shops yet</p>
               ) : (
                 shops.map((shop) => (
                   <button
@@ -153,25 +159,17 @@ export function Sidebar() {
                     onClick={() => handleSwitchShop(shop)}
                     className={cn(
                       "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors text-sm",
-                      currentShop?.id === shop.id
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-foreground hover:bg-muted"
+                      currentShop?.id === shop.id ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"
                     )}
                   >
                     <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                       <Store size={13} className="text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate text-xs">
-                        {shop.name}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {shop.location}
-                      </p>
+                      <p className="font-medium truncate text-xs">{shop.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{shop.location}</p>
                     </div>
-                    {currentShop?.id === shop.id && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                    )}
+                    {currentShop?.id === shop.id && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
                   </button>
                 ))
               )}
@@ -187,6 +185,17 @@ export function Sidebar() {
               </Link>
             </div>
           </div>
+        )}
+
+        {/* Employee mode: switch workspace link below the banner */}
+        {isEmployeeMode && !collapsed && (
+          <button
+            onClick={handleSwitchWorkspace}
+            className="w-full flex items-center gap-2 mt-1.5 px-2 py-1.5 rounded-lg text-[10px] text-sidebar-foreground/40 hover:text-sidebar-foreground/80 hover:bg-sidebar-muted transition-colors"
+          >
+            <LogOut size={10} />
+            Switch workspace
+          </button>
         )}
       </div>
 

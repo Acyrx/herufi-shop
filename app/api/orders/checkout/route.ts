@@ -1,5 +1,12 @@
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { sanitize, LIMITS } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+
+const CHECKOUT_LIMIT = 10;
+const CHECKOUT_WINDOW = 60_000;
+const ALLOWED_PAYMENT_METHODS = ["cash", "mobile_money", "card", "bank_transfer", "credit"];
+const ALLOWED_PURPOSES = ["personal", "inventory"] as const;
 
 interface CheckoutItem {
   productId: string;
@@ -11,9 +18,18 @@ interface CheckoutItem {
 }
 
 export async function POST(request: Request) {
+  // Rate limit: 10 checkout attempts per minute per IP
+  const ip = getClientIp(request);
+  const rl = rateLimit(`checkout:${ip}`, CHECKOUT_LIMIT, CHECKOUT_WINDOW);
+  if (!rl.success) return rateLimitResponse(rl);
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in to place an order" }, { status: 401 });
+
+  // Auth-scoped rate limit: 10 per minute per user (prevents multi-IP abuse)
+  const rlUser = rateLimit(`checkout:user:${user.id}`, CHECKOUT_LIMIT, CHECKOUT_WINDOW);
+  if (!rlUser.success) return rateLimitResponse(rlUser);
 
   let body: {
     items: CheckoutItem[];
@@ -27,8 +43,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const { items, paymentMethod = "cash", purchasePurpose = "personal", inventoryShopId } = body;
+  let { items, paymentMethod = "cash", purchasePurpose = "personal", inventoryShopId } = body;
+
+  // Validate and sanitize scalar fields
+  if (!ALLOWED_PAYMENT_METHODS.includes(paymentMethod)) paymentMethod = "cash";
+  if (!ALLOWED_PURPOSES.includes(purchasePurpose as "personal" | "inventory")) purchasePurpose = "personal";
+  if (inventoryShopId && typeof inventoryShopId !== "string") inventoryShopId = undefined;
+
   if (!items?.length) return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+  if (items.length > 100) return NextResponse.json({ error: "Too many items in cart" }, { status: 400 });
+
+  // Sanitize and validate each cart item
+  items = items.map(item => ({
+    productId:   String(item.productId   ?? "").slice(0, 64),
+    shopId:      String(item.shopId      ?? "").slice(0, 64),
+    shopName:    sanitize(String(item.shopName    ?? ""), LIMITS.shortText),
+    productName: sanitize(String(item.productName ?? ""), LIMITS.shortText),
+    price:    Math.max(0, Number(item.price)    || 0),
+    quantity: Math.max(1, Math.min(9999, Math.floor(Number(item.quantity) || 1))),
+  }));
 
   // Fetch user profile for customer name
   const { data: profile } = await supabase

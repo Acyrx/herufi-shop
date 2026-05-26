@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import { PWARegister } from "@/components/pwa-register";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -51,8 +52,10 @@ export default function RootLayout({
   return (
     <html lang="sw" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        {/* Inline script to apply stored theme before first paint — prevents FOUC */}
-        <script
+        {/* Runs before React hydration to apply saved theme — prevents FOUC */}
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `try{var t=localStorage.getItem('theme');if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}`,
           }}
