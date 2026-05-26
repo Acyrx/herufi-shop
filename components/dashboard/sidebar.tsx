@@ -26,6 +26,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -88,19 +89,36 @@ export function Sidebar() {
       >
         {collapsed ? (
           <button
-            onClick={() => { setCollapsed(false); setShopOpen(true); }}
+            onClick={() => {
+              setCollapsed(false);
+              setShopOpen(true);
+            }}
             className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center mx-auto"
             title={currentShop?.name ?? "Select shop"}
           >
-            <Store size={18} className="text-white" />
+            <div className="rounded-lg flex items-center justify-center">
+              <Image
+                src="/logo/favicon.png"
+                width={50}
+                height={50}
+                alt="logo"
+                className="rounded-xl"
+              />
+            </div>
           </button>
         ) : (
           <button
             onClick={() => setShopOpen((o) => !o)}
             className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-muted transition-colors"
           >
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-              <Store size={16} className="text-white" />
+            <div className="rounded-lg flex items-center justify-center">
+              <Image
+                src="/logo/favicon.png"
+                width={42}
+                height={42}
+                alt="logo"
+                className="rounded-xl"
+              />
             </div>
             <div className="flex-1 text-left min-w-0">
               <p className="font-bold text-white text-sm truncate leading-tight">
@@ -125,7 +143,9 @@ export function Sidebar() {
           <div className="absolute top-full left-3 right-3 mt-1 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
             <div className="p-2 max-h-60 overflow-y-auto">
               {shops.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-3">No shops yet</p>
+                <p className="text-xs text-muted-foreground text-center py-3">
+                  No shops yet
+                </p>
               ) : (
                 shops.map((shop) => (
                   <button
@@ -142,8 +162,12 @@ export function Sidebar() {
                       <Store size={13} className="text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate text-xs">{shop.name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{shop.location}</p>
+                      <p className="font-medium truncate text-xs">
+                        {shop.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {shop.location}
+                      </p>
                     </div>
                     {currentShop?.id === shop.id && (
                       <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />

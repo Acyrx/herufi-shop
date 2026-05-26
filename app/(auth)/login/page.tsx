@@ -20,7 +20,10 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.email || !form.password) { toast.error("Please fill in all fields"); return; }
+    if (!form.email || !form.password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
     setLoading(true);
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -38,9 +41,10 @@ export default function LoginPage() {
         .eq("id", data.user.id)
         .single();
       const role = profile?.role ?? "customer";
-      const dest = role === "owner" || role === "employee" || role === "admin"
-        ? "/dashboard"
-        : "/shop";
+      const dest =
+        role === "owner" || role === "employee" || role === "admin"
+          ? "/dashboard"
+          : "/shop";
       router.push(dest);
       router.refresh();
     }
@@ -57,7 +61,9 @@ export default function LoginPage() {
   return (
     <div className="bg-card rounded-2xl border border-border shadow-xl p-8 animate-fade-in">
       <h2 className="text-2xl font-bold text-foreground mb-1">Sign in</h2>
-      <p className="text-muted-foreground text-sm mb-6">Sign in to your Herufi account</p>
+      <p className="text-muted-foreground text-sm mb-6">
+        Sign in to your Herufi account
+      </p>
 
       {/* Google */}
       <button
@@ -65,10 +71,22 @@ export default function LoginPage() {
         className="w-full flex items-center justify-center gap-3 h-10 rounded-lg border border-border bg-card hover:bg-muted transition-colors text-sm font-medium mb-4"
       >
         <svg viewBox="0 0 24 24" className="w-4 h-4">
-          <path fill="#4285F4" d="M23.5 12.2c0-.8-.1-1.6-.2-2.4H12v4.5h6.5c-.3 1.5-1.1 2.7-2.4 3.5v2.9h3.9c2.3-2.1 3.6-5.2 3.6-8.5z" />
-          <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1C3.4 21.3 7.4 24 12 24z" />
-          <path fill="#FBBC05" d="M5.4 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.6.4-2.4V6.5H1.4C.5 8.2 0 10 0 12s.5 3.8 1.4 5.5l4-3.1z" />
-          <path fill="#EA4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.8l3.3-3.3C17.9 1.2 15.2 0 12 0 7.4 0 3.4 2.7 1.4 6.5l4 3.1C6.3 6.9 8.9 4.8 12 4.8z" />
+          <path
+            fill="#4285F4"
+            d="M23.5 12.2c0-.8-.1-1.6-.2-2.4H12v4.5h6.5c-.3 1.5-1.1 2.7-2.4 3.5v2.9h3.9c2.3-2.1 3.6-5.2 3.6-8.5z"
+          />
+          <path
+            fill="#34A853"
+            d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1C3.4 21.3 7.4 24 12 24z"
+          />
+          <path
+            fill="#FBBC05"
+            d="M5.4 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.6.4-2.4V6.5H1.4C.5 8.2 0 10 0 12s.5 3.8 1.4 5.5l4-3.1z"
+          />
+          <path
+            fill="#EA4335"
+            d="M12 4.8c1.7 0 3.2.6 4.4 1.8l3.3-3.3C17.9 1.2 15.2 0 12 0 7.4 0 3.4 2.7 1.4 6.5l4 3.1C6.3 6.9 8.9 4.8 12 4.8z"
+          />
         </svg>
         Continue with Google
       </button>
@@ -95,7 +113,10 @@ export default function LoginPage() {
           placeholder="••••••••"
           icon={<Lock size={14} />}
           iconRight={
-            <button type="button" onClick={() => setShowPassword(!showPassword)}>
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+            >
               {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
           }
@@ -104,7 +125,9 @@ export default function LoginPage() {
           autoComplete="current-password"
         />
         <div className="flex items-center justify-end">
-          <Link href="#" className="text-xs text-primary hover:underline">Forgot password?</Link>
+          <Link href="#" className="text-xs text-primary hover:underline">
+            Forgot password?
+          </Link>
         </div>
         <Button type="submit" loading={loading} className="w-full">
           Sign In
@@ -113,7 +136,12 @@ export default function LoginPage() {
 
       <p className="text-center text-sm text-muted-foreground mt-6">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="text-primary font-medium hover:underline">Create account</Link>
+        <Link
+          href="/signup"
+          className="text-primary font-medium hover:underline"
+        >
+          Create account
+        </Link>
       </p>
     </div>
   );

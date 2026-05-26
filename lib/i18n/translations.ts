@@ -206,7 +206,8 @@ export const translations = {
       exportOptions: "Export Options",
       downloadExcel: "Download Excel (.xlsx)",
       downloadCsv: "Download CSV",
-      exportNote: "Reports are generated from your live business data and downloaded directly to your device.",
+      exportNote:
+        "Reports are generated from your live business data and downloaded directly to your device.",
       noData: "No data found for the selected period",
     },
     // Shops
@@ -287,10 +288,11 @@ export const translations = {
     },
     // Landing
     landing: {
-      badge: "Powered by Gemini AI",
+      badge: "Powered by Herufi AI",
       heroTitle: "Manage Your Business",
       heroHighlight: "With Intelligence",
-      heroDesc: "One platform to manage your shop, inventory, employees, customers, and finances. For businesses in Tanzania and Africa.",
+      heroDesc:
+        "One platform to manage your shop, inventory, employees, customers, and finances. For businesses in Tanzania.",
       startFree: "Start Free Today",
       signIn: "Sign In",
       features: "Everything You Need",
@@ -498,7 +500,8 @@ export const translations = {
       exportOptions: "Chaguzi za Kuhamisha",
       downloadExcel: "Pakua Excel (.xlsx)",
       downloadCsv: "Pakua CSV",
-      exportNote: "Ripoti zinatengenezwa kutoka kwa data yako ya moja kwa moja na kupakuliwa moja kwa moja kwenye kifaa chako.",
+      exportNote:
+        "Ripoti zinatengenezwa kutoka kwa data yako ya moja kwa moja na kupakuliwa moja kwa moja kwenye kifaa chako.",
       noData: "Hakuna data iliyopatikana kwa kipindi kilichochaguliwa",
     },
     shops: {
@@ -574,10 +577,11 @@ export const translations = {
       viewDetails: "Ona Maelezo",
     },
     landing: {
-      badge: "Inavyotumia Gemini AI",
+      badge: "Inavyotumia Herufi AI",
       heroTitle: "Simamia Biashara Yako",
       heroHighlight: "Kwa Akili na Urahisi",
-      heroDesc: "Platform moja ya kusimamia duka, bidhaa, wafanyakazi, wateja, na fedha. Kwa wafanyabiashara wa Tanzania na Afrika.",
+      heroDesc:
+        "Platform moja ya kusimamia duka, bidhaa, wafanyakazi, wateja, na fedha. Kwa wafanyabiashara wa Tanzania.",
       startFree: "Anza Bure Leo",
       signIn: "Ingia Akaunti",
       features: "Kila Kitu Unachohitaji",
