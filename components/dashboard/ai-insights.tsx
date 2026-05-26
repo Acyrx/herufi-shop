@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useLang } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, Lightbulb, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -20,6 +21,7 @@ const TYPE_CONFIG = {
 };
 
 export function AIInsights() {
+  const { t } = useLang();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,11 +56,11 @@ export function AIInsights() {
             <div className="p-1.5 rounded-lg bg-primary/10">
               <Sparkles size={16} className="text-primary" />
             </div>
-            <CardTitle>AI Business Insights</CardTitle>
+            <CardTitle>{t.dashboard.aiInsights}</CardTitle>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/dashboard/ai" className="text-xs text-primary hover:underline">
-              Open AI Assistant →
+              {t.dashboard.openAiAssistant} →
             </Link>
             <Button variant="ghost" size="sm" onClick={() => fetchInsights(true)} loading={refreshing}>
               <RefreshCw size={14} />

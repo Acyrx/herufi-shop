@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useLang } from "@/lib/i18n/context";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateTime } from "@/lib/utils";
 import { AlertTriangle, Bell, BellOff, Check, CheckCheck, Package, ShoppingCart, Zap } from "lucide-react";
@@ -38,6 +39,7 @@ const TYPE_COLORS: Record<string, "warning" | "danger" | "info" | "success" | "d
 
 export default function NotificationsPage() {
   const supabase = createClient();
+  const { t } = useLang();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread">("all");
@@ -67,7 +69,7 @@ export default function NotificationsPage() {
     if (!user) return;
     await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    toast.success("All notifications marked as read");
+    toast.success(t.notifications.allMarkedRead);
   }
 
   const filtered = filter === "unread" ? notifications.filter((n) => !n.is_read) : notifications;
@@ -78,23 +80,23 @@ export default function NotificationsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            Notifications
-            {unreadCount > 0 && <Badge variant="danger">{unreadCount} new</Badge>}
+            {t.notifications.title}
+            {unreadCount > 0 && <Badge variant="danger">{unreadCount} {t.notifications.new}</Badge>}
           </h2>
-          <p className="text-muted-foreground text-sm">Stay updated on your business activity</p>
+          <p className="text-muted-foreground text-sm">{t.notifications.subtitle}</p>
         </div>
         {unreadCount > 0 && (
           <Button variant="outline" size="sm" onClick={markAllRead}>
-            <CheckCheck size={14} /> Mark all as read
+            <CheckCheck size={14} /> {t.notifications.markAllRead}
           </Button>
         )}
       </div>
 
       <div className="flex gap-2">
-        {["all", "unread"].map((f) => (
-          <button key={f} onClick={() => setFilter(f as "all" | "unread")}
-            className={`px-4 py-2 text-sm rounded-lg border transition-colors capitalize ${filter === f ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
-          >{f} {f === "unread" && unreadCount > 0 ? `(${unreadCount})` : ""}</button>
+        {(["all", "unread"] as const).map((f) => (
+          <button key={f} onClick={() => setFilter(f)}
+            className={`px-4 py-2 text-sm rounded-lg border transition-colors ${filter === f ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+          >{f === "all" ? t.notifications.all : t.notifications.unread}{f === "unread" && unreadCount > 0 ? ` (${unreadCount})` : ""}</button>
         ))}
       </div>
 
@@ -106,7 +108,7 @@ export default function NotificationsPage() {
         ) : filtered.length === 0 ? (
           <Card className="py-16 text-center">
             <BellOff size={40} className="mx-auto mb-3 text-muted-foreground opacity-30" />
-            <p className="text-muted-foreground">{filter === "unread" ? "No unread notifications" : "No notifications yet"}</p>
+            <p className="text-muted-foreground">{filter === "unread" ? t.notifications.noUnread : t.notifications.noNotifications}</p>
           </Card>
         ) : (
           filtered.map((n) => (

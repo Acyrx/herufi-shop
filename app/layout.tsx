@@ -49,8 +49,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="sw" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="sw" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        {/* Inline script to apply stored theme before first paint — prevents FOUC */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('theme');if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}`,
+          }}
+        />
         <Providers>{children}</Providers>
         <PWARegister />
       </body>

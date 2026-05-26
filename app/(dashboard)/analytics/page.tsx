@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
+import { useLang } from "@/lib/i18n/context";
 import { useShop } from "@/lib/context/shop";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils";
@@ -27,6 +28,7 @@ const COLORS = ["#16a34a", "#22c55e", "#86efac", "#f59e0b", "#ef4444", "#3b82f6"
 
 export default function AnalyticsPage() {
   const supabase = createClient();
+  const { t } = useLang();
   const { shopId, currentShop } = useShop();
   const [period, setPeriod] = useState("7d");
   const [stats, setStats] = useState({ revenue: 0, orders: 0, customers: 0, profit: 0 });
@@ -91,8 +93,8 @@ export default function AnalyticsPage() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold">Analytics</h2>
-          <p className="text-muted-foreground text-sm">{currentShop ? currentShop.name + " · " : ""}Business performance insights</p>
+          <h2 className="text-2xl font-bold">{t.analytics.title}</h2>
+          <p className="text-muted-foreground text-sm">{currentShop ? currentShop.name + " · " : ""}{t.analytics.subtitle}</p>
         </div>
         <div className="flex gap-1 bg-muted rounded-lg p-1">
           {["7d", "30d", "90d"].map((p) => (
@@ -105,16 +107,16 @@ export default function AnalyticsPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Revenue" value={formatCurrency(stats.revenue)} icon={<DollarSign size={20} className="text-primary" />} />
-        <StatCard title="Total Orders" value={stats.orders} icon={<ShoppingCart size={20} className="text-blue-600" />} iconBg="bg-blue-100 dark:bg-blue-900/30" />
-        <StatCard title="Est. Profit" value={formatCurrency(stats.profit)} icon={<TrendingUp size={20} className="text-green-600" />} iconBg="bg-green-100 dark:bg-green-900/30" />
-        <StatCard title="Avg. Order" value={formatCurrency(stats.orders > 0 ? stats.revenue / stats.orders : 0)} icon={<BarChart3 size={20} className="text-purple-600" />} iconBg="bg-purple-100 dark:bg-purple-900/30" />
+        <StatCard title={t.analytics.totalRevenue} value={formatCurrency(stats.revenue)} icon={<DollarSign size={20} className="text-primary" />} />
+        <StatCard title={t.analytics.totalOrders} value={stats.orders} icon={<ShoppingCart size={20} className="text-blue-600" />} iconBg="bg-blue-100 dark:bg-blue-900/30" />
+        <StatCard title={t.analytics.estimatedProfit} value={formatCurrency(stats.profit)} icon={<TrendingUp size={20} className="text-green-600" />} iconBg="bg-green-100 dark:bg-green-900/30" />
+        <StatCard title={t.analytics.avgOrder} value={formatCurrency(stats.orders > 0 ? stats.revenue / stats.orders : 0)} icon={<BarChart3 size={20} className="text-purple-600" />} iconBg="bg-purple-100 dark:bg-purple-900/30" />
       </div>
 
       {/* Revenue & Orders Chart */}
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>
-          <CardHeader><CardTitle>Revenue Trend</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t.analytics.revenueTrend}</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={salesData}>
@@ -135,7 +137,7 @@ export default function AnalyticsPage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Orders per Day</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t.analytics.ordersPerDay}</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={salesData} barSize={20}>
@@ -152,10 +154,10 @@ export default function AnalyticsPage() {
 
       {/* Top Products */}
       <Card>
-        <CardHeader><CardTitle>Top Products by Revenue</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t.analytics.topProducts}</CardTitle></CardHeader>
         <CardContent>
           {topProducts.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No sales data yet</p>
+            <p className="text-center text-muted-foreground py-8">{t.analytics.noData}</p>
           ) : (
             <div className="space-y-3">
               {topProducts.map((p, i) => {
@@ -172,7 +174,7 @@ export default function AnalyticsPage() {
                       <div className="h-2 rounded-full bg-muted overflow-hidden">
                         <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{p.sold} units sold</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{p.sold} {t.analytics.unitsSold}</p>
                     </div>
                   </div>
                 );

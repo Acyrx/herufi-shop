@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { useLang } from "@/lib/i18n/context";
 import { useShop } from "@/lib/context/shop";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -17,6 +18,7 @@ type ReportType = "sales" | "inventory" | "financial" | "employees";
 
 export default function ReportsPage() {
   const supabase = createClient();
+  const { t } = useLang();
   const { shopId, currentShop } = useShop();
   const [reportType, setReportType] = useState<ReportType>("sales");
   const [dateFrom, setDateFrom] = useState(new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
@@ -101,15 +103,15 @@ export default function ReportsPage() {
     setGenerating(true);
     try {
       const data = await fetchReportData();
-      if (!data.length) { toast.error("No data found for the selected period"); return; }
+      if (!data.length) { toast.error(t.reports.noData); return; }
 
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, reportType);
       XLSX.writeFile(wb, `herufi_${reportType}_report_${dateFrom}_${dateTo}.xlsx`);
-      toast.success("Report downloaded successfully");
+      toast.success(t.reports.downloaded);
     } catch {
-      toast.error("Failed to generate report");
+      toast.error(t.reports.failed);
     }
     setGenerating(false);
   }
@@ -118,7 +120,7 @@ export default function ReportsPage() {
     setGenerating(true);
     try {
       const data = await fetchReportData();
-      if (!data.length) { toast.error("No data found"); return; }
+      if (!data.length) { toast.error(t.reports.noDataShort); return; }
 
       const headers = Object.keys(data[0]);
       const rows = data.map((row) => headers.map((h) => `"${row[h as keyof typeof row]}"`).join(","));
@@ -131,9 +133,9 @@ export default function ReportsPage() {
       a.download = `herufi_${reportType}_report_${dateFrom}_${dateTo}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("CSV downloaded");
+      toast.success(t.reports.downloaded);
     } catch {
-      toast.error("Failed to generate CSV");
+      toast.error(t.reports.failed);
     }
     setGenerating(false);
   }
@@ -201,26 +203,26 @@ export default function ReportsPage() {
       }
 
       doc.save(`herufi_${reportType}_report_${dateFrom}_${dateTo}.pdf`);
-      toast.success("PDF downloaded");
+      toast.success(t.reports.downloaded);
     } catch (e) {
-      toast.error("Failed to generate PDF");
+      toast.error(t.reports.failed);
       console.error(e);
     }
     setGenerating(false);
   }
 
   const REPORT_TYPES = [
-    { value: "sales", label: "Sales Report", desc: "Orders, revenue, and customer data" },
-    { value: "inventory", label: "Inventory Report", desc: "Stock levels, prices, and expiry" },
-    { value: "financial", label: "Financial Report", desc: "Income, expenses, and transactions" },
-    { value: "employees", label: "Employee Report", desc: "Staff roles and permissions" },
+    { value: "sales", label: t.reports.salesReport, desc: t.reports.salesDesc },
+    { value: "inventory", label: t.reports.inventoryReport, desc: t.reports.inventoryDesc },
+    { value: "financial", label: t.reports.financialReport, desc: t.reports.financialDesc },
+    { value: "employees", label: t.reports.employeeReport, desc: t.reports.employeeDesc },
   ];
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h2 className="text-2xl font-bold">Reports</h2>
-        <p className="text-muted-foreground text-sm">Export your business data</p>
+        <h2 className="text-2xl font-bold">{t.reports.title}</h2>
+        <p className="text-muted-foreground text-sm">{t.reports.subtitle}</p>
       </div>
 
       {/* Report Type Selection */}
@@ -244,11 +246,11 @@ export default function ReportsPage() {
       {/* Date Range (hide for inventory & employees) */}
       {(reportType === "sales" || reportType === "financial") && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Date Range</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{t.reports.dateRange}</CardTitle></CardHeader>
           <CardContent>
             <div className="grid sm:grid-cols-2 gap-4">
-              <Input label="From" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-              <Input label="To" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              <Input label={t.reports.from} type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              <Input label={t.reports.to} type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
             </div>
           </CardContent>
         </Card>
@@ -256,24 +258,24 @@ export default function ReportsPage() {
 
       {/* Export Buttons */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Export Options</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{t.reports.exportOptions}</CardTitle></CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
             <Button onClick={downloadExcel} loading={generating} variant="outline">
               <FileSpreadsheet size={16} className="text-green-600" />
-              Download Excel (.xlsx)
+              {t.reports.downloadExcel}
             </Button>
             <Button onClick={downloadCSV} loading={generating} variant="outline">
               <FileText size={16} className="text-blue-600" />
-              Download CSV
+              {t.reports.downloadCsv}
             </Button>
             <Button onClick={downloadPDF} loading={generating} variant="outline">
               <FileDown size={16} className="text-red-600" />
-              Download PDF
+              {t.reports.downloadPdf}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
-            Reports are generated from your live business data and downloaded directly to your device.
+            {t.reports.exportNote}
           </p>
         </CardContent>
       </Card>

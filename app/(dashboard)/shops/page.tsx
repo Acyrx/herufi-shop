@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useLang } from "@/lib/i18n/context";
 import { useShop } from "@/lib/context/shop";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate } from "@/lib/utils";
@@ -35,6 +36,7 @@ interface Shop {
 
 export default function ShopsPage() {
   const supabase = createClient();
+  const { t } = useLang();
   const { refreshShops, setCurrentShop } = useShop();
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,7 @@ export default function ShopsPage() {
   }
 
   async function handleSave() {
-    if (!form.name || !form.location) { toast.error("Name and location are required"); return; }
+    if (!form.name || !form.location) { toast.error(t.shops.nameRequired); return; }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -82,13 +84,13 @@ export default function ShopsPage() {
 
     if (editShop) {
       const { error } = await supabase.from("shops").update(payload).eq("id", editShop.id);
-      if (error) toast.error("Failed to update shop");
-      else toast.success("Shop updated");
+      if (error) toast.error(t.shops.failedUpdate);
+      else toast.success(t.shops.updated);
     } else {
       const { data: newShop, error } = await supabase.from("shops").insert(payload).select().single();
-      if (error) toast.error("Failed to create shop");
+      if (error) toast.error(t.shops.failedCreate);
       else {
-        toast.success("Shop created! Switching to new shop…");
+        toast.success(t.shops.created);
         if (newShop) setCurrentShop(newShop);
       }
     }
@@ -129,11 +131,11 @@ export default function ShopsPage() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold">My Shops</h2>
-          <p className="text-muted-foreground text-sm">Manage your business locations</p>
+          <h2 className="text-2xl font-bold">{t.shops.title}</h2>
+          <p className="text-muted-foreground text-sm">{t.shops.subtitle}</p>
         </div>
         <Button onClick={() => { resetForm(); setShowAdd(true); }} size="sm">
-          <Plus size={14} /> New Shop
+          <Plus size={14} /> {t.shops.newShop}
         </Button>
       </div>
 
@@ -146,9 +148,9 @@ export default function ShopsPage() {
       ) : shops.length === 0 ? (
         <Card className="py-16 text-center">
           <Building2 size={48} className="mx-auto mb-4 text-muted-foreground opacity-30" />
-          <p className="text-muted-foreground mb-4">No shops yet. Create your first shop to get started.</p>
+          <p className="text-muted-foreground mb-4">{t.shops.noShops}</p>
           <Button onClick={() => setShowAdd(true)}>
-            <Plus size={14} /> Create Shop
+            <Plus size={14} /> {t.shops.createShop}
           </Button>
         </Card>
       ) : (
@@ -163,7 +165,7 @@ export default function ShopsPage() {
                   <div className="flex items-center gap-2 justify-between">
                     <h3 className="font-bold text-foreground truncate">{shop.name}</h3>
                     <Badge variant={shop.is_active ? "success" : "default"}>
-                      {shop.is_active ? "Active" : "Inactive"}
+                      {shop.is_active ? t.shops.active : t.shops.inactive}
                     </Badge>
                   </div>
                   <Badge variant="info" className="mt-1">{shop.business_category}</Badge>
@@ -182,30 +184,30 @@ export default function ShopsPage() {
                   </div>
                 )}
                 <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border">
-                  <span>Tax: {shop.tax_rate}% • {shop.currency}</span>
-                  <span>Since {formatDate(shop.created_at)}</span>
+                  <span>{t.shops.tax}: {shop.tax_rate}% • {shop.currency}</span>
+                  <span>{t.shops.since} {formatDate(shop.created_at)}</span>
                 </div>
               </div>
 
               <div className="flex gap-2 mt-4 pt-4 border-t border-border flex-wrap">
                 <Button variant="ghost" size="sm" onClick={() => openEdit(shop)}>
-                  <Edit size={13} /> Edit
+                  <Edit size={13} /> {t.common.edit}
                 </Button>
                 <Button
                   variant={shop.is_active ? "outline" : "primary"}
                   size="sm"
                   onClick={() => handleToggle(shop)}
                 >
-                  {shop.is_active ? "Deactivate" : "Activate"}
+                  {shop.is_active ? t.shops.deactivate : t.shops.activate}
                 </Button>
                 {shop.is_active && (
                   <Button
                     variant="primary"
                     size="sm"
                     className="flex-1"
-                    onClick={() => { setCurrentShop(shop); toast.success(`Switched to ${shop.name}`); }}
+                    onClick={() => { setCurrentShop(shop); toast.success(`${t.shops.switchedTo} ${shop.name}`); }}
                   >
-                    Switch
+                    {t.shops.switchShop}
                   </Button>
                 )}
               </div>
@@ -214,27 +216,27 @@ export default function ShopsPage() {
         </div>
       )}
 
-      <Modal open={showAdd} onClose={() => { setShowAdd(false); resetForm(); }} title={editShop ? "Edit Shop" : "Create New Shop"} size="lg">
+      <Modal open={showAdd} onClose={() => { setShowAdd(false); resetForm(); }} title={editShop ? t.shops.editShop : t.shops.createNewShop} size="lg">
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
-            <Input label="Shop Name *" placeholder="e.g. Juma Wholesale Center" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <Input label={`${t.shops.shopName} *`} placeholder="e.g. Juma Wholesale Center" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </div>
           <div className="sm:col-span-2">
-            <Input label="Location *" placeholder="Street, City, Region" icon={<MapPin size={14} />} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+            <Input label={`${t.shops.location} *`} placeholder="Street, City, Region" icon={<MapPin size={14} />} value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
           </div>
-          <Input label="Phone" placeholder="+255 XXX XXX XXX" value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} />
-          <Input label="Email" type="email" placeholder="shop@email.com" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} />
-          <Select label="Business Category" value={form.business_category} onChange={(e) => setForm({ ...form, business_category: e.target.value })}
+          <Input label={t.shops.phone} placeholder="+255 XXX XXX XXX" value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} />
+          <Input label={t.shops.email} type="email" placeholder="shop@email.com" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} />
+          <Select label={t.shops.businessCategory} value={form.business_category} onChange={(e) => setForm({ ...form, business_category: e.target.value })}
             options={BUSINESS_CATEGORIES.map((c) => ({ value: c, label: c }))} />
-          <Select label="Currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}
+          <Select label={t.shops.currency} value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}
             options={[{ value: "TZS", label: "TZS - Tanzanian Shilling" }, { value: "USD", label: "USD - US Dollar" }, { value: "KES", label: "KES - Kenyan Shilling" }]} />
           <div className="sm:col-span-2">
-            <Input label="Tax Rate (%)" type="number" placeholder="18" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: e.target.value })} />
+            <Input label={t.shops.taxRate} type="number" placeholder="18" value={form.tax_rate} onChange={(e) => setForm({ ...form, tax_rate: e.target.value })} />
           </div>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <Button variant="outline" onClick={() => { setShowAdd(false); resetForm(); }}>Cancel</Button>
-          <Button onClick={handleSave} loading={saving}>{editShop ? "Update Shop" : "Create Shop"}</Button>
+          <Button variant="outline" onClick={() => { setShowAdd(false); resetForm(); }}>{t.common.cancel}</Button>
+          <Button onClick={handleSave} loading={saving}>{editShop ? t.shops.updateShop : t.shops.createShop}</Button>
         </div>
       </Modal>
     </div>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
+import { useLang } from "@/lib/i18n/context";
 import { useShop } from "@/lib/context/shop";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -40,6 +41,7 @@ interface Transaction {
 
 export default function FinancialPage() {
   const supabase = createClient();
+  const { t } = useLang();
   const { shopId, currentShop } = useShop();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,8 +80,8 @@ export default function FinancialPage() {
   const balance = income - expenses;
 
   async function handleSave() {
-    if (!form.amount || !form.description) { toast.error("Fill all required fields"); return; }
-    if (!shopId) { toast.error("No shop selected"); return; }
+    if (!form.amount || !form.description) { toast.error(t.financial.fillAllFields); return; }
+    if (!shopId) { toast.error(t.financial.noShopSelected); return; }
     setSaving(true);
 
     const { error } = await supabase.from("transactions").insert({
@@ -92,8 +94,8 @@ export default function FinancialPage() {
       date: form.date,
     });
 
-    if (error) toast.error("Failed to save transaction");
-    else toast.success("Transaction recorded");
+    if (error) toast.error(t.financial.failedToSave);
+    else toast.success(t.financial.transactionRecorded);
 
     setSaving(false);
     setShowAdd(false);
@@ -105,30 +107,30 @@ export default function FinancialPage() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold">Financial</h2>
-          <p className="text-muted-foreground text-sm">{currentShop ? currentShop.name + " · " : ""}Profit, expenses & cash flow</p>
+          <h2 className="text-2xl font-bold">{t.financial.title}</h2>
+          <p className="text-muted-foreground text-sm">{currentShop ? currentShop.name + " · " : ""}{t.financial.subtitle}</p>
         </div>
         <Button onClick={() => setShowAdd(true)} size="sm">
-          <Plus size={14} /> Record Transaction
+          <Plus size={14} /> {t.financial.recordTransaction}
         </Button>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
-          title="Total Income"
+          title={t.financial.totalIncome}
           value={formatCurrency(income)}
           icon={<ArrowUpRight size={20} className="text-green-600" />}
           iconBg="bg-green-100 dark:bg-green-900/30"
         />
         <StatCard
-          title="Total Expenses"
+          title={t.financial.totalExpenses}
           value={formatCurrency(expenses)}
           icon={<ArrowDownLeft size={20} className="text-red-500" />}
           iconBg="bg-red-100 dark:bg-red-900/30"
         />
         <StatCard
-          title="Net Balance"
+          title={t.financial.netBalance}
           value={formatCurrency(balance)}
           icon={<DollarSign size={20} className={balance >= 0 ? "text-primary" : "text-destructive"} />}
           iconBg={balance >= 0 ? "bg-primary/10" : "bg-destructive/10"}
@@ -137,17 +139,17 @@ export default function FinancialPage() {
 
       {/* Transactions Table */}
       <Card>
-        <CardHeader><CardTitle>Recent Transactions</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t.financial.recentTransactions}</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left pb-3 font-medium text-muted-foreground">Date</th>
-                  <th className="text-left pb-3 font-medium text-muted-foreground">Description</th>
-                  <th className="text-left pb-3 font-medium text-muted-foreground hidden sm:table-cell">Category</th>
-                  <th className="text-left pb-3 font-medium text-muted-foreground hidden md:table-cell">Method</th>
-                  <th className="text-right pb-3 font-medium text-muted-foreground">Amount</th>
+                  <th className="text-left pb-3 font-medium text-muted-foreground">{t.common.date}</th>
+                  <th className="text-left pb-3 font-medium text-muted-foreground">{t.financial.description}</th>
+                  <th className="text-left pb-3 font-medium text-muted-foreground hidden sm:table-cell">{t.common.category}</th>
+                  <th className="text-left pb-3 font-medium text-muted-foreground hidden md:table-cell">{t.financial.method}</th>
+                  <th className="text-right pb-3 font-medium text-muted-foreground">{t.common.amount}</th>
                 </tr>
               </thead>
               <tbody>
@@ -156,7 +158,7 @@ export default function FinancialPage() {
                     <tr key={i}><td colSpan={5} className="py-3"><div className="h-4 bg-muted rounded animate-pulse" /></td></tr>
                   ))
                 ) : transactions.length === 0 ? (
-                  <tr><td colSpan={5} className="py-12 text-center text-muted-foreground">No transactions yet</td></tr>
+                  <tr><td colSpan={5} className="py-12 text-center text-muted-foreground">{t.financial.noTransactions}</td></tr>
                 ) : (
                   transactions.map((t) => (
                     <tr key={t.id} className="border-b border-border/50 hover:bg-muted/20">
@@ -184,31 +186,31 @@ export default function FinancialPage() {
       </Card>
 
       {/* Add Transaction Modal */}
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Record Transaction">
+      <Modal open={showAdd} onClose={() => setShowAdd(false)} title={t.financial.recordTransaction}>
         <div className="space-y-3">
           <div className="flex gap-2">
-            {["income", "expense"].map((type) => (
+            {(["income", "expense"] as const).map((type) => (
               <button key={type} onClick={() => setForm({ ...form, type })}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors border capitalize ${form.type === type ? "bg-primary text-white border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
-              >{type}</button>
+              >{t.financial[type]}</button>
             ))}
           </div>
-          <Input label="Amount (TZS) *" type="number" placeholder="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-          <Input label="Description *" placeholder="What was this for?" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <Select label="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
+          <Input label={`${t.financial.amount} *`} type="number" placeholder="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+          <Input label={`${t.financial.description} *`} placeholder="What was this for?" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <Select label={t.common.category} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
             options={EXPENSE_CATEGORIES.map((c) => ({ value: c, label: c }))} />
-          <Select label="Payment Method" value={form.payment_method} onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
+          <Select label={t.financial.paymentMethod} value={form.payment_method} onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
             options={[
               { value: "cash", label: "Cash" },
               { value: "mpesa", label: "M-Pesa" },
               { value: "bank_transfer", label: "Bank Transfer" },
               { value: "card", label: "Card" },
             ]} />
-          <Input label="Date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+          <Input label={t.common.date} type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <Button variant="outline" onClick={() => setShowAdd(false)}>Cancel</Button>
-          <Button onClick={handleSave} loading={saving}>Save Transaction</Button>
+          <Button variant="outline" onClick={() => setShowAdd(false)}>{t.common.cancel}</Button>
+          <Button onClick={handleSave} loading={saving}>{t.financial.saveTransaction}</Button>
         </div>
       </Modal>
     </div>

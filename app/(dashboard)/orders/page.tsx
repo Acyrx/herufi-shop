@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { useLang } from "@/lib/i18n/context";
 import { useShop } from "@/lib/context/shop";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
@@ -55,6 +56,7 @@ const NEXT_STATUS: Record<string, { label: string; value: string }[]> = {
 
 export default function OrdersPage() {
   const supabase = createClient();
+  const { t } = useLang();
   const { shopId, currentShop } = useShop();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,10 +115,10 @@ export default function OrdersPage() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold">Orders</h2>
+          <h2 className="text-2xl font-bold">{t.orders.title}</h2>
           <p className="text-muted-foreground text-sm">
             {currentShop ? currentShop.name + " · " : ""}
-            {loading ? "Loading…" : `${orders.length} orders`}
+            {loading ? t.common.loading : `${orders.length} ${t.orders.total}`}
           </p>
         </div>
       </div>
@@ -124,7 +126,7 @@ export default function OrdersPage() {
       <div className="flex flex-wrap gap-3">
         <div className="flex-1 min-w-48">
           <Input
-            placeholder="Search orders or customer…"
+            placeholder={t.orders.searchOrders}
             icon={<Search size={14} />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -150,13 +152,13 @@ export default function OrdersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="text-left p-4 font-medium text-muted-foreground">Order #</th>
-                <th className="text-left p-4 font-medium text-muted-foreground hidden sm:table-cell">Customer</th>
-                <th className="text-left p-4 font-medium text-muted-foreground hidden md:table-cell">Date</th>
-                <th className="text-right p-4 font-medium text-muted-foreground">Amount</th>
-                <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
-                <th className="text-left p-4 font-medium text-muted-foreground hidden lg:table-cell">Payment</th>
-                <th className="text-right p-4 font-medium text-muted-foreground">Action</th>
+                <th className="text-left p-4 font-medium text-muted-foreground">{t.orders.orderNumber}</th>
+                <th className="text-left p-4 font-medium text-muted-foreground hidden sm:table-cell">{t.orders.customer}</th>
+                <th className="text-left p-4 font-medium text-muted-foreground hidden md:table-cell">{t.common.date}</th>
+                <th className="text-right p-4 font-medium text-muted-foreground">{t.common.amount}</th>
+                <th className="text-left p-4 font-medium text-muted-foreground">{t.common.status}</th>
+                <th className="text-left p-4 font-medium text-muted-foreground hidden lg:table-cell">{t.orders.payment}</th>
+                <th className="text-right p-4 font-medium text-muted-foreground">{t.common.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -172,7 +174,7 @@ export default function OrdersPage() {
                 <tr>
                   <td colSpan={7} className="py-16 text-center text-muted-foreground">
                     <Package size={40} className="mx-auto mb-3 opacity-30" />
-                    {!shopId ? "Select a shop to view orders" : "No orders found"}
+                    {!shopId ? t.orders.noOrders : t.orders.noOrders}
                   </td>
                 </tr>
               ) : (
@@ -180,7 +182,7 @@ export default function OrdersPage() {
                   <tr key={o.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                     <td className="p-4 font-mono text-xs font-semibold">{o.order_number}</td>
                     <td className="p-4 hidden sm:table-cell text-muted-foreground">
-                      {o.customer?.name ?? "Walk-in"}
+                      {o.customer?.name ?? t.orders.walkIn}
                     </td>
                     <td className="p-4 hidden md:table-cell text-xs text-muted-foreground">
                       {formatDateTime(o.created_at)}
