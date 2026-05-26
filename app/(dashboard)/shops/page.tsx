@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useShop } from "@/lib/context/shop";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate } from "@/lib/utils";
 import { Building2, Edit, MapPin, Phone, Plus, Trash2 } from "lucide-react";
@@ -34,6 +35,7 @@ interface Shop {
 
 export default function ShopsPage() {
   const supabase = createClient();
+  const { refreshShops, setCurrentShop } = useShop();
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -83,9 +85,12 @@ export default function ShopsPage() {
       if (error) toast.error("Failed to update shop");
       else toast.success("Shop updated");
     } else {
-      const { error } = await supabase.from("shops").insert(payload);
+      const { data: newShop, error } = await supabase.from("shops").insert(payload).select().single();
       if (error) toast.error("Failed to create shop");
-      else toast.success("Shop created");
+      else {
+        toast.success("Shop created! Switching to new shop…");
+        if (newShop) setCurrentShop(newShop);
+      }
     }
 
     setSaving(false);
@@ -93,6 +98,7 @@ export default function ShopsPage() {
     setEditShop(null);
     resetForm();
     fetchShops();
+    await refreshShops();
   }
 
   async function handleToggle(shop: Shop) {
@@ -181,18 +187,27 @@ export default function ShopsPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 mt-4 pt-4 border-t border-border">
-                <Button variant="ghost" size="sm" className="flex-1" onClick={() => openEdit(shop)}>
+              <div className="flex gap-2 mt-4 pt-4 border-t border-border flex-wrap">
+                <Button variant="ghost" size="sm" onClick={() => openEdit(shop)}>
                   <Edit size={13} /> Edit
                 </Button>
                 <Button
                   variant={shop.is_active ? "outline" : "primary"}
                   size="sm"
-                  className="flex-1"
                   onClick={() => handleToggle(shop)}
                 >
                   {shop.is_active ? "Deactivate" : "Activate"}
                 </Button>
+                {shop.is_active && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => { setCurrentShop(shop); toast.success(`Switched to ${shop.name}`); }}
+                  >
+                    Switch
+                  </Button>
+                )}
               </div>
             </Card>
           ))}

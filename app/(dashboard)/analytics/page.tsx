@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
+import { useShop } from "@/lib/context/shop";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils";
 import { BarChart3, DollarSign, ShoppingCart, TrendingUp, Users } from "lucide-react";
@@ -26,16 +27,20 @@ const COLORS = ["#16a34a", "#22c55e", "#86efac", "#f59e0b", "#ef4444", "#3b82f6"
 
 export default function AnalyticsPage() {
   const supabase = createClient();
+  const { shopId, currentShop } = useShop();
   const [period, setPeriod] = useState("7d");
   const [stats, setStats] = useState({ revenue: 0, orders: 0, customers: 0, profit: 0 });
   const [salesData, setSalesData] = useState<any[]>([]);
   const [topProducts, setTopProducts] = useState<any[]>([]);
-  const [categoryData, setCategoryData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchData(); }, [period]);
+  useEffect(() => {
+    if (shopId) fetchData();
+    else setLoading(false);
+  }, [period, shopId]);
 
   async function fetchData() {
+    if (!shopId) return;
     setLoading(true);
     const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
     const from = new Date(Date.now() - days * 86400000).toISOString();
@@ -43,13 +48,13 @@ export default function AnalyticsPage() {
     const { data: orders } = await supabase
       .from("orders")
       .select("total, created_at, payment_status")
+      .eq("shop_id", shopId)
       .gte("created_at", from)
       .eq("payment_status", "paid");
 
     const paidOrders = orders ?? [];
     const revenue = paidOrders.reduce((s, o) => s + o.total, 0);
 
-    // Group by date
     const byDate: Record<string, { revenue: number; orders: number }> = {};
     paidOrders.forEach((o) => {
       const date = new Date(o.created_at).toLocaleDateString("en-TZ", { month: "short", day: "numeric" });
@@ -60,14 +65,14 @@ export default function AnalyticsPage() {
 
     const salesArr = Object.entries(byDate).map(([date, v]) => ({ date, ...v, profit: v.revenue * 0.22 }));
     setSalesData(salesArr);
-
     setStats({ revenue, orders: paidOrders.length, customers: 0, profit: revenue * 0.22 });
 
-    // Top products from order items
+    // Top products — filter via shop's orders
     const { data: items } = await supabase
       .from("order_items")
-      .select("quantity, unit_price, products(name)")
-      .limit(100);
+      .select("quantity, unit_price, products(name), order:orders!inner(shop_id)")
+      .eq("order.shop_id", shopId)
+      .limit(200);
 
     const productSales: Record<string, { name: string; revenue: number; sold: number }> = {};
     (items ?? []).forEach((item: any) => {
@@ -79,7 +84,6 @@ export default function AnalyticsPage() {
 
     const top = Object.values(productSales).sort((a, b) => b.revenue - a.revenue).slice(0, 8);
     setTopProducts(top);
-
     setLoading(false);
   }
 
@@ -88,7 +92,7 @@ export default function AnalyticsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold">Analytics</h2>
-          <p className="text-muted-foreground text-sm">Business performance insights</p>
+          <p className="text-muted-foreground text-sm">{currentShop ? currentShop.name + " · " : ""}Business performance insights</p>
         </div>
         <div className="flex gap-1 bg-muted rounded-lg p-1">
           {["7d", "30d", "90d"].map((p) => (

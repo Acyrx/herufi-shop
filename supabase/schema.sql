@@ -12,6 +12,7 @@ create extension if not exists "uuid-ossp";
 create table if not exists public.profiles (
   id uuid references auth.users(id) on delete cascade primary key,
   full_name text not null,
+  email text,
   phone text,
   avatar_url text,
   role text not null default 'customer' check (role in ('owner', 'employee', 'customer', 'admin')),
@@ -20,8 +21,9 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
-create policy "Profiles are viewable by owner" on public.profiles
-  for select using (auth.uid() = id);
+-- Allow all authenticated users to search profiles (required for employee assignment)
+create policy "Authenticated users can view profiles" on public.profiles
+  for select using (auth.role() = 'authenticated');
 
 create policy "Profiles are updateable by owner" on public.profiles
   for update using (auth.uid() = id);
@@ -33,12 +35,16 @@ create policy "Profiles are insertable by owner" on public.profiles
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, full_name, role)
+  insert into public.profiles (id, full_name, email, role)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'full_name', new.email),
+    new.email,
     coalesce(new.raw_user_meta_data->>'role', 'customer')
-  );
+  )
+  on conflict (id) do update
+    set email = excluded.email,
+        full_name = coalesce(excluded.full_name, profiles.full_name);
   return new;
 end;
 $$ language plpgsql security definer;

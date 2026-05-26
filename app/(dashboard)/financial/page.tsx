@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
+import { useShop } from "@/lib/context/shop";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import {
@@ -39,6 +40,7 @@ interface Transaction {
 
 export default function FinancialPage() {
   const supabase = createClient();
+  const { shopId, currentShop } = useShop();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -53,13 +55,18 @@ export default function FinancialPage() {
     date: new Date().toISOString().slice(0, 10),
   });
 
-  useEffect(() => { fetchTransactions(); }, []);
+  useEffect(() => {
+    if (shopId) fetchTransactions();
+    else setLoading(false);
+  }, [shopId]);
 
   async function fetchTransactions() {
+    if (!shopId) return;
     setLoading(true);
     const { data } = await supabase
       .from("transactions")
       .select("*")
+      .eq("shop_id", shopId)
       .order("date", { ascending: false })
       .limit(50);
     setTransactions(data ?? []);
@@ -72,9 +79,11 @@ export default function FinancialPage() {
 
   async function handleSave() {
     if (!form.amount || !form.description) { toast.error("Fill all required fields"); return; }
+    if (!shopId) { toast.error("No shop selected"); return; }
     setSaving(true);
 
     const { error } = await supabase.from("transactions").insert({
+      shop_id: shopId,
       type: form.type,
       category: form.category,
       amount: parseFloat(form.amount),
@@ -97,7 +106,7 @@ export default function FinancialPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold">Financial</h2>
-          <p className="text-muted-foreground text-sm">Profit, expenses & cash flow</p>
+          <p className="text-muted-foreground text-sm">{currentShop ? currentShop.name + " · " : ""}Profit, expenses & cash flow</p>
         </div>
         <Button onClick={() => setShowAdd(true)} size="sm">
           <Plus size={14} /> Record Transaction

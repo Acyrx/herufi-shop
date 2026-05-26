@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { useShop } from "@/lib/context/shop";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, formatDate, getInitials } from "@/lib/utils";
 import { Edit, Plus, Search, Star, Trash2, Users } from "lucide-react";
@@ -34,6 +35,7 @@ const SEGMENT_COLORS: Record<string, "success" | "warning" | "info" | "default">
 
 export default function CustomersPage() {
   const supabase = createClient();
+  const { shopId, currentShop } = useShop();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -50,11 +52,15 @@ export default function CustomersPage() {
     segment: "new",
   });
 
-  useEffect(() => { fetchCustomers(); }, []);
+  useEffect(() => {
+    if (shopId) fetchCustomers();
+    else setLoading(false);
+  }, [shopId]);
 
   async function fetchCustomers() {
+    if (!shopId) return;
     setLoading(true);
-    const { data } = await supabase.from("customers").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase.from("customers").select("*").eq("shop_id", shopId).order("created_at", { ascending: false });
     setCustomers(data ?? []);
     setLoading(false);
   }
@@ -69,7 +75,14 @@ export default function CustomersPage() {
     if (!form.name) { toast.error("Name is required"); return; }
     setSaving(true);
 
+    if (!shopId && !editCustomer) {
+      toast.error("No shop found. Please create a shop first.");
+      setSaving(false);
+      return;
+    }
+
     const payload = {
+      shop_id: shopId,
       name: form.name,
       phone: form.phone || null,
       email: form.email || null,
@@ -82,11 +95,11 @@ export default function CustomersPage() {
 
     if (editCustomer) {
       const { error } = await supabase.from("customers").update(payload).eq("id", editCustomer.id);
-      if (error) toast.error("Failed to update");
+      if (error) { toast.error("Failed to update: " + error.message); }
       else toast.success("Customer updated");
     } else {
       const { error } = await supabase.from("customers").insert(payload);
-      if (error) toast.error("Failed to add customer");
+      if (error) { toast.error("Failed to add customer: " + error.message); }
       else toast.success("Customer added");
     }
 
@@ -123,7 +136,7 @@ export default function CustomersPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold">Customers</h2>
-          <p className="text-muted-foreground text-sm">{customers.length} registered customers</p>
+          <p className="text-muted-foreground text-sm">{currentShop ? currentShop.name + " · " : ""}{customers.length} customers</p>
         </div>
         <Button onClick={() => { resetForm(); setShowAdd(true); }} size="sm">
           <Plus size={14} /> Add Customer

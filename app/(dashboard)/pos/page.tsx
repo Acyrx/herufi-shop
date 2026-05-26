@@ -4,9 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { useShop } from "@/lib/context/shop";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getInitials } from "@/lib/utils";
 import {
   Minus,
   Package,
@@ -15,6 +17,9 @@ import {
   Search,
   ShoppingCart,
   Trash2,
+  User,
+  UserCheck,
+  Users,
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -40,6 +45,14 @@ interface Product {
   category?: { name: string };
 }
 
+interface Customer {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  loyalty_points: number;
+}
+
 const PAYMENT_METHODS = [
   { value: "cash", label: "Cash" },
   { value: "mpesa", label: "M-Pesa" },
@@ -50,6 +63,7 @@ const PAYMENT_METHODS = [
 
 export default function POSPage() {
   const supabase = createClient();
+  const { shopId, currentShop } = useShop();
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -58,22 +72,50 @@ export default function POSPage() {
   const [taxRate] = useState(0.18);
   const [processing, setProcessing] = useState(false);
   const [lastReceipt, setLastReceipt] = useState<string | null>(null);
+
+  // Customer state
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchProducts();
+    if (shopId) fetchProducts();
     searchRef.current?.focus();
-  }, []);
+  }, [shopId]);
 
   async function fetchProducts() {
+    if (!shopId) return;
     const { data } = await supabase
       .from("products")
       .select("*, category:categories(name)")
+      .eq("shop_id", shopId)
       .eq("is_active", true)
       .gt("quantity", 0)
       .order("name");
     setProducts(data ?? []);
   }
+
+  async function searchCustomers(q: string) {
+    if (!shopId) return;
+    setLoadingCustomers(true);
+    const query = supabase
+      .from("customers")
+      .select("id, name, phone, email, loyalty_points")
+      .eq("shop_id", shopId)
+      .limit(20);
+    if (q.trim()) query.or(`name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
+    const { data } = await query;
+    setCustomers(data ?? []);
+    setLoadingCustomers(false);
+  }
+
+  useEffect(() => {
+    if (showCustomerModal) searchCustomers(customerSearch);
+  }, [customerSearch, showCustomerModal]);
 
   const filtered = products.filter(
     (p) =>
@@ -115,10 +157,8 @@ export default function POSPage() {
   const total = taxableAmount + tax;
 
   async function processCheckout() {
-    if (cart.length === 0) {
-      toast.error("Cart is empty");
-      return;
-    }
+    if (cart.length === 0) { toast.error("Cart is empty"); return; }
+    if (!shopId) { toast.error("No shop configured. Please create a shop first."); return; }
     setProcessing(true);
 
     const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
@@ -126,6 +166,8 @@ export default function POSPage() {
     const { data: order, error } = await supabase
       .from("orders")
       .insert({
+        shop_id: shopId,
+        customer_id: selectedCustomer?.id ?? null,
         order_number: orderNumber,
         status: "completed",
         payment_method: paymentMethod,
@@ -139,12 +181,11 @@ export default function POSPage() {
       .single();
 
     if (error || !order) {
-      toast.error("Order failed. Please try again.");
+      toast.error("Order failed: " + (error?.message ?? "unknown error"));
       setProcessing(false);
       return;
     }
 
-    // Insert order items
     const items = cart.map((i) => ({
       order_id: order.id,
       product_id: i.product_id,
@@ -156,7 +197,6 @@ export default function POSPage() {
 
     await supabase.from("order_items").insert(items);
 
-    // Update stock quantities
     for (const item of cart) {
       const product = products.find((p) => p.id === item.product_id);
       if (product) {
@@ -167,12 +207,49 @@ export default function POSPage() {
       }
     }
 
+    // Award loyalty points (1 point per 1000 TZS)
+    if (selectedCustomer) {
+      const points = Math.floor(total / 1000);
+      if (points > 0) {
+        await supabase
+          .from("customers")
+          .update({ loyalty_points: selectedCustomer.loyalty_points + points })
+          .eq("id", selectedCustomer.id);
+      }
+    }
+
     toast.success(`Order ${orderNumber} completed!`);
     setLastReceipt(orderNumber);
     setCart([]);
     setDiscount(0);
+    setSelectedCustomer(null);
     setProcessing(false);
     fetchProducts();
+  }
+
+  function printReceipt() {
+    if (!lastReceipt) return;
+    const w = window.open("", "_blank");
+    if (!w) return;
+    const items = cart.length > 0 ? cart : [];
+    w.document.write(`
+      <html><head><title>Receipt - ${lastReceipt}</title>
+      <style>body{font-family:monospace;padding:16px;max-width:300px;margin:0 auto}h2{text-align:center}hr{border:1px dashed #999}.total{font-weight:bold;font-size:1.1em}</style>
+      </head><body>
+      <h2>${currentShop?.name ?? "HERUFI"}</h2>
+      ${currentShop?.location ? `<p style="text-align:center;font-size:0.8em">${currentShop.location}</p>` : ""}
+      <p style="text-align:center">Receipt: ${lastReceipt}</p>
+      <p style="text-align:center">${new Date().toLocaleString()}</p><hr/>
+      ${selectedCustomer ? `<p>Customer: ${selectedCustomer.name}</p>` : "<p>Walk-in Customer</p>"}
+      <hr/>
+      ${items.map(i => `<p>${i.name}<br/>${i.quantity} x ${formatCurrency(i.price)} = ${formatCurrency(i.price * i.quantity)}</p>`).join("")}
+      <hr/>
+      <p class="total">TOTAL: ${formatCurrency(total)}</p>
+      <p>Payment: ${paymentMethod.toUpperCase()}</p>
+      <hr/><p style="text-align:center">Thank you!</p>
+      </body></html>
+    `);
+    w.print();
   }
 
   return (
@@ -224,6 +301,44 @@ export default function POSPage() {
 
       {/* Cart */}
       <div className="lg:col-span-2 flex flex-col gap-3">
+        {/* Customer Selector */}
+        <Card className="py-2 px-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {selectedCustomer ? (
+                <>
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                    {getInitials(selectedCustomer.name)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold truncate">{selectedCustomer.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{selectedCustomer.loyalty_points} pts</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <User size={14} className="text-muted-foreground shrink-0" />
+                  <p className="text-xs text-muted-foreground">Walk-in Customer</p>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {selectedCustomer && (
+                <button onClick={() => setSelectedCustomer(null)} className="p-1 text-muted-foreground hover:text-destructive transition-colors">
+                  <X size={12} />
+                </button>
+              )}
+              <button
+                onClick={() => { setShowCustomerModal(true); setCustomerSearch(""); }}
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-muted hover:bg-muted/80 text-foreground transition-colors"
+              >
+                <Users size={11} />
+                {selectedCustomer ? "Change" : "Select"}
+              </button>
+            </div>
+          </div>
+        </Card>
+
         <Card className="flex-1 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold flex items-center gap-2">
@@ -304,7 +419,7 @@ export default function POSPage() {
           />
 
           <div className="flex gap-2 mt-4">
-            <Button variant="outline" size="sm" className="flex-1" disabled={!lastReceipt}>
+            <Button variant="outline" size="sm" className="flex-1" onClick={printReceipt} disabled={!lastReceipt}>
               <Printer size={14} />
               Receipt
             </Button>
@@ -314,6 +429,67 @@ export default function POSPage() {
           </div>
         </Card>
       </div>
+
+      {/* Customer Search Modal */}
+      <Modal open={showCustomerModal} onClose={() => setShowCustomerModal(false)} title="Select Customer">
+        <div className="space-y-3">
+          <Input
+            placeholder="Search by name, phone, or email..."
+            icon={<Search size={14} />}
+            value={customerSearch}
+            onChange={(e) => setCustomerSearch(e.target.value)}
+            autoFocus
+          />
+
+          {/* Walk-in option */}
+          <button
+            onClick={() => { setSelectedCustomer(null); setShowCustomerModal(false); }}
+            className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-left"
+          >
+            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
+              <User size={16} className="text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Walk-in Customer</p>
+              <p className="text-xs text-muted-foreground">No customer account needed</p>
+            </div>
+          </button>
+
+          <div className="space-y-1 max-h-72 overflow-y-auto">
+            {loadingCustomers ? (
+              Array(3).fill(0).map((_, i) => (
+                <div key={i} className="h-14 bg-muted rounded-lg animate-pulse" />
+              ))
+            ) : customers.length === 0 ? (
+              <p className="text-center text-muted-foreground text-sm py-6">No customers found</p>
+            ) : (
+              customers.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => { setSelectedCustomer(c); setShowCustomerModal(false); }}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
+                    selectedCustomer?.id === c.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50 hover:bg-muted/40"
+                  }`}
+                >
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                    {getInitials(c.name)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{c.name}</p>
+                    <p className="text-xs text-muted-foreground">{c.phone ?? c.email ?? "—"}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-semibold text-amber-600">{c.loyalty_points} pts</p>
+                    {selectedCustomer?.id === c.id && <UserCheck size={14} className="text-primary ml-auto mt-1" />}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

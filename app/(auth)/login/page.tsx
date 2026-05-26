@@ -23,16 +23,25 @@ export default function LoginPage() {
     if (!form.email || !form.password) { toast.error("Please fill in all fields"); return; }
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: form.email,
       password: form.password,
     });
 
     if (error) {
       toast.error(error.message);
-    } else {
+    } else if (data.user) {
       toast.success("Welcome back!");
-      router.push("/dashboard");
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+      const role = profile?.role ?? "customer";
+      const dest = role === "owner" || role === "employee" || role === "admin"
+        ? "/dashboard"
+        : "/shop";
+      router.push(dest);
       router.refresh();
     }
     setLoading(false);
@@ -41,14 +50,14 @@ export default function LoginPage() {
   async function handleGoogleLogin() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
 
   return (
     <div className="bg-card rounded-2xl border border-border shadow-xl p-8 animate-fade-in">
       <h2 className="text-2xl font-bold text-foreground mb-1">Sign in</h2>
-      <p className="text-muted-foreground text-sm mb-6">Access your business dashboard</p>
+      <p className="text-muted-foreground text-sm mb-6">Sign in to your Herufi account</p>
 
       {/* Google */}
       <button

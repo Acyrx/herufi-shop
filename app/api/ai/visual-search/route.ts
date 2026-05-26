@@ -1,5 +1,10 @@
 import { visualSearchCache } from "@/lib/cache";
-import { getClientIp, rateLimit, rateLimitResponse, withRateLimitHeaders } from "@/lib/rate-limit";
+import {
+  getClientIp,
+  rateLimit,
+  rateLimitResponse,
+  withRateLimitHeaders,
+} from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createHash } from "crypto";
@@ -22,7 +27,8 @@ export async function POST(request: Request) {
   }
 
   const file = formData.get("image") as File;
-  if (!file) return Response.json({ error: "No image provided" }, { status: 400 });
+  if (!file)
+    return Response.json({ error: "No image provided" }, { status: 400 });
 
   if (!file.type.startsWith("image/")) {
     return Response.json({ error: "File must be an image" }, { status: 400 });
@@ -37,7 +43,10 @@ export async function POST(request: Request) {
   const mimeType = file.type;
 
   // Cache by content hash so identical images skip Gemini
-  const hash = createHash("sha256").update(Buffer.from(bytes)).digest("hex").slice(0, 16);
+  const hash = createHash("sha256")
+    .update(Buffer.from(bytes))
+    .digest("hex")
+    .slice(0, 16);
   const cacheKey = `vsearch:${hash}`;
   const cached = visualSearchCache.get(cacheKey);
   if (cached) {
@@ -49,7 +58,7 @@ export async function POST(request: Request) {
   }
 
   const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const visionPrompt = `Analyze this image and identify the product(s) shown.
 Return a JSON object with:
@@ -69,14 +78,20 @@ Return ONLY valid JSON, no markdown.`;
       { inlineData: { mimeType, data: base64 } },
       visionPrompt,
     ]);
-    const text = result.response.text().replace(/```json\n?|\n?```/g, "").trim();
+    const text = result.response
+      .text()
+      .replace(/```json\n?|\n?```/g, "")
+      .trim();
     const parsed = JSON.parse(text);
     productName = parsed.product_name ?? "";
     keywords = parsed.keywords ?? [];
     description = parsed.description ?? "";
   } catch {
     return withRateLimitHeaders(
-      Response.json({ error: "Could not analyze image", products: [] }, { status: 200 }),
+      Response.json(
+        { error: "Could not analyze image", products: [] },
+        { status: 200 }
+      ),
       rl,
       VS_LIMIT
     );
@@ -88,13 +103,20 @@ Return ONLY valid JSON, no markdown.`;
 
   const { data: products } = await supabase
     .from("products")
-    .select("id, name, selling_price, quantity, image_url, unit, description, category:categories(name)")
+    .select(
+      "id, name, selling_price, quantity, image_url, unit, description, category:categories(name)"
+    )
     .eq("is_active", true)
     .gt("quantity", 0)
     .or(searchTerms.map((term) => `name.ilike.%${term}%`).join(","))
     .limit(12);
 
-  const payload = { query: productName, description, keywords, products: products ?? [] };
+  const payload = {
+    query: productName,
+    description,
+    keywords,
+    products: products ?? [],
+  };
   visualSearchCache.set(cacheKey, payload, VS_TTL);
 
   return withRateLimitHeaders(

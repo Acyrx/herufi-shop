@@ -1,32 +1,51 @@
 "use client";
 
+import { useShop, type Shop } from "@/lib/context/shop";
 import { useLang } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 import {
   BarChart3,
   Bell,
   Building2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
   CreditCard,
   Home,
   Package,
+  Plus,
   Settings,
   ShoppingCart,
   Sparkles,
   Store,
+  TrendingUp,
   Users,
   UserSquare2,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
-export function Sidebar({ shopName = "Herufi" }: { shopName?: string }) {
+export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
   const { t } = useLang();
+  const { shops, currentShop, setCurrentShop, loading } = useShop();
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) {
+        setShopOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const navItems = [
     { href: "/dashboard", label: t.nav.dashboard, icon: Home },
@@ -34,6 +53,7 @@ export function Sidebar({ shopName = "Herufi" }: { shopName?: string }) {
     { href: "/inventory", label: t.nav.inventory, icon: Package },
     { href: "/pos", label: t.nav.pos, icon: ShoppingCart },
     { href: "/orders", label: t.nav.orders, icon: ClipboardList },
+    { href: "/sales", label: "Sales", icon: TrendingUp },
     { href: "/customers", label: t.nav.customers, icon: Users },
     { href: "/employees", label: t.nav.employees, icon: UserSquare2 },
     { href: "/analytics", label: t.nav.analytics, icon: BarChart3 },
@@ -44,6 +64,13 @@ export function Sidebar({ shopName = "Herufi" }: { shopName?: string }) {
     { href: "/settings", label: t.nav.settings, icon: Settings },
   ];
 
+  function handleSwitchShop(shop: Shop) {
+    setCurrentShop(shop);
+    setShopOpen(false);
+    // Reload current page to pick up new shop context
+    router.refresh();
+  }
+
   return (
     <aside
       className={cn(
@@ -51,22 +78,90 @@ export function Sidebar({ shopName = "Herufi" }: { shopName?: string }) {
         collapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Logo */}
+      {/* Shop Switcher */}
       <div
+        ref={dropRef}
         className={cn(
-          "flex items-center gap-3 p-4 h-16 border-b border-sidebar-muted",
-          collapsed && "justify-center"
+          "relative border-b border-sidebar-muted",
+          collapsed ? "p-2" : "p-3"
         )}
       >
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-          <Store size={18} className="text-white" />
-        </div>
-        {!collapsed && (
-          <div className="overflow-hidden">
-            <p className="font-bold text-white truncate">{shopName}</p>
-            <p className="text-[10px] text-sidebar-foreground/50">
-              Business Platform
-            </p>
+        {collapsed ? (
+          <button
+            onClick={() => { setCollapsed(false); setShopOpen(true); }}
+            className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center mx-auto"
+            title={currentShop?.name ?? "Select shop"}
+          >
+            <Store size={18} className="text-white" />
+          </button>
+        ) : (
+          <button
+            onClick={() => setShopOpen((o) => !o)}
+            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-muted transition-colors"
+          >
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+              <Store size={16} className="text-white" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="font-bold text-white text-sm truncate leading-tight">
+                {loading ? "Loading…" : currentShop?.name ?? "Select shop"}
+              </p>
+              <p className="text-[10px] text-sidebar-foreground/50 truncate leading-tight">
+                {currentShop?.business_category ?? "No shop selected"}
+              </p>
+            </div>
+            <ChevronDown
+              size={14}
+              className={cn(
+                "text-sidebar-foreground/50 transition-transform shrink-0",
+                shopOpen && "rotate-180"
+              )}
+            />
+          </button>
+        )}
+
+        {/* Shop Dropdown */}
+        {shopOpen && !collapsed && (
+          <div className="absolute top-full left-3 right-3 mt-1 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+            <div className="p-2 max-h-60 overflow-y-auto">
+              {shops.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-3">No shops yet</p>
+              ) : (
+                shops.map((shop) => (
+                  <button
+                    key={shop.id}
+                    onClick={() => handleSwitchShop(shop)}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors text-sm",
+                      currentShop?.id === shop.id
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Store size={13} className="text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate text-xs">{shop.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{shop.location}</p>
+                    </div>
+                    {currentShop?.id === shop.id && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="border-t border-border p-2">
+              <Link
+                href="/shops"
+                onClick={() => setShopOpen(false)}
+                className="flex items-center gap-2 p-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <Plus size={12} />
+                Manage / Add Shop
+              </Link>
+            </div>
           </div>
         )}
       </div>

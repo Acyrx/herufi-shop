@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useCart } from "@/lib/context/cart";
 import { useLang } from "@/lib/i18n/context";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils";
@@ -10,11 +11,12 @@ import {
   ArrowLeft,
   CheckCircle,
   MapPin,
+  Minus,
   Package,
+  Plus,
   Share2,
   ShoppingCart,
   Store,
-  Tag,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -40,9 +42,16 @@ export default function ProductDetailPage() {
   const params = useParams<{ id: string }>();
   const supabase = createClient();
   const { t } = useLang();
+  const { addItem } = useCart();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [related, setRelated] = useState<ProductDetail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [qty, setQty] = useState(1);
+  const [authed, setAuthed] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setAuthed(!!data.user));
+  }, []);
 
   useEffect(() => {
     if (params.id) fetchProduct(params.id);
@@ -220,20 +229,71 @@ export default function ProductDetailPage() {
           </div>
 
           {/* CTA */}
-          <div className="flex gap-3">
-            <Link href="/login" className="flex-1">
-              <Button className="w-full" size="lg" disabled={!inStock}>
-                <ShoppingCart size={18} />
-                {inStock ? t.catalog.addToCart : t.catalog.outOfStock}
-              </Button>
-            </Link>
-          </div>
-
-          <p className="text-xs text-muted-foreground">
-            {inStock
-              ? "Sign in to add to cart and place your order."
-              : "This product is currently unavailable."}
-          </p>
+          {inStock ? (
+            authed ? (
+              <div className="space-y-3">
+                {/* Qty selector */}
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground font-medium">Quantity</span>
+                  <div className="flex items-center gap-2 border border-border rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => setQty(q => Math.max(1, q - 1))}
+                      disabled={qty <= 1}
+                      className="w-9 h-9 flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40"
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <span className="w-10 text-center text-sm font-bold text-foreground">{qty}</span>
+                    <button
+                      onClick={() => setQty(q => Math.min(product.quantity, q + 1))}
+                      disabled={qty >= product.quantity}
+                      className="w-9 h-9 flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{product.quantity} available</span>
+                </div>
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={() => {
+                    if (!product.shop?.id) { toast.error("Shop info missing"); return; }
+                    addItem({
+                      productId: product.id,
+                      shopId: product.shop.id,
+                      shopName: product.shop.name,
+                      productName: product.name,
+                      price: product.selling_price,
+                      imageUrl: product.image_url,
+                      unit: product.unit,
+                      maxQty: product.quantity,
+                      quantity: qty,
+                    });
+                    toast.success(`${product.name} added to cart`);
+                  }}
+                >
+                  <ShoppingCart size={18} />
+                  {t.catalog.addToCart} · {formatCurrency(product.selling_price * qty)}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Link href="/login" className="block">
+                  <Button className="w-full" size="lg">
+                    <ShoppingCart size={18} />
+                    {t.catalog.addToCart}
+                  </Button>
+                </Link>
+                <p className="text-xs text-muted-foreground text-center">Sign in to add to cart and place your order.</p>
+              </div>
+            )
+          ) : (
+            <Button className="w-full" size="lg" disabled>
+              <XCircle size={18} />
+              {t.catalog.outOfStock}
+            </Button>
+          )}
 
           {/* Shop info */}
           {product.shop && (

@@ -2,12 +2,14 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { useCart } from "@/lib/context/cart";
 import { useLang } from "@/lib/i18n/context";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils";
-import { Package, Search, SlidersHorizontal, Store } from "lucide-react";
+import { Package, Plus, Search, Store } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface Product {
   id: string;
@@ -18,10 +20,11 @@ interface Product {
   image_url?: string;
   unit: string;
   category?: { name: string };
-  shop?: { name: string; location: string };
+  shop?: { id: string; name: string; location: string };
 }
 
 export default function ShopPage() {
+  const { addItem } = useCart();
   const supabase = createClient();
   const { t } = useLang();
   const [products, setProducts] = useState<Product[]>([]);
@@ -37,7 +40,7 @@ export default function ShopPage() {
     setLoading(true);
     const { data } = await supabase
       .from("products")
-      .select("id, name, description, selling_price, quantity, image_url, unit, category:categories(name), shop:shops(name, location)")
+      .select("id, name, description, selling_price, quantity, image_url, unit, category:categories(name), shop:shops(id, name, location)")
       .eq("is_active", true)
       .gt("quantity", 0)
       .order("name");
@@ -137,37 +140,40 @@ export default function ShopPage() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {filtered.map((p) => (
-            <Link
+            <div
               key={p.id}
-              href={`/shop/${p.id}`}
-              className="group bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-200"
+              className="group bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-200 flex flex-col"
             >
-              {/* Image */}
-              <div className="relative w-full aspect-square bg-muted flex items-center justify-center overflow-hidden">
-                {p.image_url ? (
-                  <img
-                    src={p.image_url}
-                    alt={p.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <Package size={32} className="text-muted-foreground/40 group-hover:text-primary/40 transition-colors" />
-                )}
-                {p.quantity <= 5 && p.quantity > 0 && (
-                  <span className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                    {p.quantity} left
-                  </span>
-                )}
-              </div>
+              {/* Image — click goes to product detail */}
+              <Link href={`/shop/${p.id}`} className="block">
+                <div className="relative w-full aspect-square bg-muted flex items-center justify-center overflow-hidden">
+                  {p.image_url ? (
+                    <img
+                      src={p.image_url}
+                      alt={p.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <Package size={32} className="text-muted-foreground/40" />
+                  )}
+                  {p.quantity <= 5 && p.quantity > 0 && (
+                    <span className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {p.quantity} left
+                    </span>
+                  )}
+                </div>
+              </Link>
 
               {/* Info */}
-              <div className="p-3">
+              <div className="p-3 flex flex-col flex-1">
                 {p.category && (
                   <p className="text-[10px] text-muted-foreground mb-1 truncate">{p.category.name}</p>
                 )}
-                <p className="text-sm font-semibold text-foreground leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                  {p.name}
-                </p>
+                <Link href={`/shop/${p.id}`} className="flex-1">
+                  <p className="text-sm font-semibold text-foreground leading-tight line-clamp-2 hover:text-primary transition-colors">
+                    {p.name}
+                  </p>
+                </Link>
                 <p className="text-base font-bold text-primary mt-1.5">{formatCurrency(p.selling_price)}</p>
                 <p className="text-[10px] text-muted-foreground">/ {p.unit}</p>
                 {p.shop && (
@@ -175,8 +181,31 @@ export default function ShopPage() {
                     <Store size={9} /> {p.shop.name}
                   </p>
                 )}
+
+                {/* Add to cart */}
+                <button
+                  onClick={() => {
+                    if (!p.shop?.id) { toast.error("Shop info missing"); return; }
+                    addItem({
+                      productId: p.id,
+                      shopId: p.shop.id,
+                      shopName: p.shop.name,
+                      productName: p.name,
+                      price: p.selling_price,
+                      imageUrl: p.image_url,
+                      unit: p.unit,
+                      maxQty: p.quantity,
+                    });
+                    toast.success(`${p.name} added to cart`);
+                  }}
+                  disabled={p.quantity === 0}
+                  className="mt-2.5 w-full flex items-center justify-center gap-1.5 h-8 bg-primary/10 hover:bg-primary text-primary hover:text-white text-xs font-semibold rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Plus size={13} />
+                  {p.quantity === 0 ? "Out of Stock" : "Add to Cart"}
+                </button>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}

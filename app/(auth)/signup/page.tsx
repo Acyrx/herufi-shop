@@ -67,7 +67,8 @@ export default function SignupPage() {
       });
 
       toast.success("Account created! Welcome to Herufi.");
-      router.push("/dashboard");
+      const dest = form.role === "customer" ? "/shop" : "/dashboard";
+      router.push(dest);
       router.refresh();
     }
     setLoading(false);
@@ -76,7 +77,7 @@ export default function SignupPage() {
   async function handleGoogleSignup() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
 
