@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ProductAnalyticsPanel } from "@/components/dashboard/ProductAnalyticsPanel";
+import type { AnalyticsProduct } from "@/components/dashboard/ProductAnalyticsPanel";
 import { useShop } from "@/lib/context/shop";
 import { createClient } from "@/lib/supabase/client";
 import { cn, formatCurrency, generateSKU, getStockStatus } from "@/lib/utils";
 import {
   AlertTriangle,
   Barcode,
+  BarChart2,
   Download,
   Edit,
   ImageIcon,
@@ -53,6 +56,7 @@ export default function InventoryPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
+  const [analyticsProduct, setAnalyticsProduct] = useState<AnalyticsProduct | null>(null);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -278,7 +282,11 @@ export default function InventoryPage() {
                     </tr>
                   ) : (
                     filtered.map((p) => (
-                      <tr key={p.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                      <tr
+                        key={p.id}
+                        onClick={() => setAnalyticsProduct(p)}
+                        className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer"
+                      >
                         <td className="p-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
@@ -312,8 +320,25 @@ export default function InventoryPage() {
                         <td className="p-4">{stockBadge(p)}</td>
                         <td className="p-4 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <button onClick={() => openEdit(p)} className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><Edit size={14} /></button>
-                            <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"><Trash2 size={14} /></button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setAnalyticsProduct(p); }}
+                              className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                              title="View analytics"
+                            >
+                              <BarChart2 size={14} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openEdit(p); }}
+                              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            >
+                              <Edit size={14} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
+                              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -324,6 +349,15 @@ export default function InventoryPage() {
             </div>
           </Card>
         </>
+      )}
+
+      {/* ── Product Analytics Panel ─────────────────────────────────────── */}
+      {analyticsProduct && shopId && (
+        <ProductAnalyticsPanel
+          product={analyticsProduct}
+          shopId={shopId}
+          onClose={() => setAnalyticsProduct(null)}
+        />
       )}
 
       <Modal open={showAdd} onClose={() => { setShowAdd(false); resetForm(); }} title={editProduct ? "Edit Product" : "Add Product"} size="lg">
