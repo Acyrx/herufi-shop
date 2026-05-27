@@ -128,7 +128,7 @@ Keep each message under 100 characters. Be specific with numbers. Write in Engli
 
   try {
     const genAI = new GoogleGenerativeAI(
-      process.env.NEXT_PUBLIC_GEMINI_API_KEY!
+      process.env.GEMINI_API_KEY!
     );
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(context);

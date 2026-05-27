@@ -17,7 +17,7 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Next.js requires unsafe-eval in dev
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://*.supabase.co https://scxgzauofehlkulvivnk.supabase.co",
-      "connect-src 'self' https://*.supabase.co https://generativelanguage.googleapis.com",
+      "connect-src 'self' https://*.supabase.co",
       "font-src 'self'",
       "frame-ancestors 'none'",
       "form-action 'self'",

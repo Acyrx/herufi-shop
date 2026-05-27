@@ -197,6 +197,12 @@ export default function LandingPage() {
 
             {/* Desktop Nav */}
             <Link
+              href="/docs"
+              className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {lang === "sw" ? "Mwongozo" : "Docs"}
+            </Link>
+            <Link
               href="/shop"
               className="hidden md:inline text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -257,6 +263,13 @@ export default function LandingPage() {
 
             {/* LINKS */}
             <div className="flex flex-col gap-1">
+              <Link
+                href="/docs"
+                onClick={() => setMobileMenu(false)}
+                className="px-3 py-3 rounded-xl hover:bg-muted transition-colors"
+              >
+                {lang === "sw" ? "Mwongozo" : "Docs"}
+              </Link>
               <Link
                 href="/shop"
                 onClick={() => setMobileMenu(false)}
@@ -323,7 +336,7 @@ export default function LandingPage() {
           <br />
           <span className="text-primary">{t.landing.heroHighlight}</span>
         </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+        <p id="hero-description" className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
           {t.landing.heroDesc}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4">
@@ -484,6 +497,9 @@ export default function LandingPage() {
             </Link>
             <Link href="#" className="hover:text-foreground">
               Terms
+            </Link>
+            <Link href="/docs" className="hover:text-foreground">
+              {lang === "sw" ? "Mwongozo" : "Docs"}
             </Link>
             <Link href="/shop" className="hover:text-foreground">
               {t.nav.shop}

@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
-  const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
   // Get authenticated user + profile
   const { data: { user } } = await supabase.auth.getUser();
