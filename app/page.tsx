@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { LandingNav } from "@/components/landing/Nav";
 import { LandingFooter } from "@/components/landing/Footer";
+import { LandingChatBot } from "@/components/landing/ChatBot";
 
 /* ─── tiny helpers ───────────────────────────────────────────────────────── */
 const T = {
@@ -670,6 +671,9 @@ export default function Home() {
       </section>
 
       <LandingFooter lang={lang} />
+
+      {/* ── AI Chatbot (floating, bottom-right) ── */}
+      <LandingChatBot lang={lang} />
     </div>
   );
 }

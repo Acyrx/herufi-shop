@@ -14,6 +14,7 @@ import {
   CreditCard,
   Home,
   LogOut,
+  MoreHorizontal,
   Package,
   Plus,
   Settings,
@@ -23,6 +24,7 @@ import {
   TrendingUp,
   Users,
   UserSquare2,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -245,38 +247,224 @@ export function Sidebar() {
 
 export function MobileNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const { t } = useLang();
+  const {
+    currentShop,
+    isEmployeeMode,
+    employeeSession,
+    hasPermission,
+    exitEmployeeMode,
+  } = useShop();
+  const [moreOpen, setMoreOpen] = useState(false);
 
-  const mobileItems = [
-    { href: "/dashboard", label: t.nav.dashboard, icon: Home },
-    { href: "/inventory", label: t.nav.inventory, icon: Package },
-    { href: "/pos", label: t.nav.pos, icon: ShoppingCart },
-    { href: "/orders", label: t.nav.orders, icon: ClipboardList },
-    { href: "/settings", label: t.nav.settings, icon: Settings },
+  // All nav items with permission metadata (same as Sidebar)
+  const allNavItems = [
+    { href: "/dashboard",     label: t.nav.dashboard,      icon: Home,          perm: null,              ownerOnly: false },
+    { href: "/shops",         label: t.nav.myShops,         icon: Building2,     perm: null,              ownerOnly: true  },
+    { href: "/inventory",     label: t.nav.inventory,       icon: Package,       perm: "view_inventory",  ownerOnly: false },
+    { href: "/pos",           label: t.nav.pos,             icon: ShoppingCart,  perm: null,              ownerOnly: false },
+    { href: "/orders",        label: t.nav.orders,          icon: ClipboardList, perm: "view_orders",     ownerOnly: false },
+    { href: "/sales",         label: "Sales",               icon: TrendingUp,    perm: "view_reports",    ownerOnly: false },
+    { href: "/customers",     label: t.nav.customers,       icon: Users,         perm: "view_customers",  ownerOnly: false },
+    { href: "/employees",     label: t.nav.employees,       icon: UserSquare2,   perm: null,              ownerOnly: true  },
+    { href: "/analytics",     label: t.nav.analytics,       icon: BarChart3,     perm: "view_reports",    ownerOnly: false },
+    { href: "/financial",     label: t.nav.financial,       icon: CreditCard,    perm: "view_financial",  ownerOnly: false },
+    { href: "/reports",       label: t.nav.reports,         icon: ClipboardList, perm: "view_reports",    ownerOnly: false },
+    { href: "/notifications", label: t.nav.notifications,   icon: Bell,          perm: null,              ownerOnly: false },
+    { href: "/ai",            label: t.nav.aiAssistant,     icon: Sparkles,      perm: null,              ownerOnly: false },
+    { href: "/settings",      label: t.nav.settings,        icon: Settings,      perm: null,              ownerOnly: true  },
   ];
 
+  // Filter by role / permissions
+  const visibleItems = allNavItems.filter(item => {
+    if (isEmployeeMode) {
+      if (item.ownerOnly) return false;
+      if (item.perm && !hasPermission(item.perm)) return false;
+    }
+    return true;
+  });
+
+  // Bottom-bar primary slots (always the same 4 + More)
+  const primaryHrefs = ["/dashboard", "/pos", "/inventory", "/ai"];
+  const primaryItems = primaryHrefs
+    .map(href => visibleItems.find(i => i.href === href))
+    .filter(Boolean) as typeof visibleItems;
+
+  // "More" drawer items = everything not in the bottom bar
+  const primarySet = new Set(primaryHrefs);
+  const moreItems = visibleItems.filter(i => !primarySet.has(i.href));
+
+  // Count active items in moreItems for badge
+  const moreHasActive = moreItems.some(
+    i => pathname === i.href || (i.href !== "/dashboard" && pathname.startsWith(i.href))
+  );
+
+  function handleSwitchWorkspace() {
+    setMoreOpen(false);
+    exitEmployeeMode();
+    router.push("/choose-context");
+  }
+
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card border-t border-border">
-      <div className="flex items-center justify-around h-16">
-        {mobileItems.map(({ href, label, icon: Icon }) => {
-          const active =
-            pathname === href ||
-            (href !== "/dashboard" && pathname.startsWith(href));
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-[10px] transition-colors",
-                active ? "text-primary" : "text-muted-foreground"
+    <>
+      {/* ── Bottom nav bar ───────────────────────────────────────────────── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-t border-border">
+        <div className="flex items-stretch justify-around h-16 px-1">
+          {primaryItems.map(({ href, label, icon: Icon }) => {
+            const active =
+              pathname === href ||
+              (href !== "/dashboard" && pathname.startsWith(href));
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl text-[10px] font-medium transition-all",
+                  active
+                    ? "text-primary bg-primary/8"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                )}
+              >
+                <Icon size={20} className={active ? "stroke-[2.2px]" : ""} />
+                <span className="truncate max-w-[52px] text-center leading-tight">{label}</span>
+              </Link>
+            );
+          })}
+
+          {/* More button */}
+          <button
+            onClick={() => setMoreOpen(true)}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl text-[10px] font-medium transition-all relative",
+              moreOpen || moreHasActive
+                ? "text-primary bg-primary/8"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            )}
+          >
+            <div className="relative">
+              <MoreHorizontal size={20} />
+              {moreHasActive && !moreOpen && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary border-2 border-card" />
               )}
-            >
-              <Icon size={20} />
-              <span>{label}</span>
-            </Link>
-          );
-        })}
+            </div>
+            <span>More</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* ── More drawer backdrop ─────────────────────────────────────────── */}
+      <div
+        onClick={() => setMoreOpen(false)}
+        className={cn(
+          "md:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] transition-opacity duration-200",
+          moreOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+      />
+
+      {/* ── More drawer (slides up) ──────────────────────────────────────── */}
+      <div
+        className={cn(
+          "md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-2xl shadow-2xl border-t border-border transition-transform duration-300 ease-out",
+          moreOpen ? "translate-y-0" : "translate-y-full"
+        )}
+        style={{ maxHeight: "78vh" }}
+      >
+        {/* Drag handle */}
+        <div className="flex items-center justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-border" />
+        </div>
+
+        {/* Shop / Employee context banner */}
+        <div className="mx-4 mb-3 p-3 rounded-xl bg-muted/60 border border-border flex items-center gap-3">
+          {isEmployeeMode ? (
+            <>
+              <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                <Store size={16} className="text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate">{employeeSession?.shopName ?? "Shop"}</p>
+                <p className="text-[11px] text-muted-foreground capitalize">
+                  {employeeSession?.role?.replace(/_/g, " ") ?? "Employee"}
+                </p>
+              </div>
+              <button
+                onClick={handleSwitchWorkspace}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground bg-background border border-border px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <LogOut size={12} />
+                Switch
+              </button>
+            </>
+          ) : (
+            <>
+              <Image src="/logo/favicon.png" width={36} height={36} alt="logo" className="rounded-xl shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate">
+                  {currentShop?.name ?? "No shop selected"}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {currentShop?.business_category ?? "Select a shop"}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Divider label */}
+        <p className="px-4 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-2">
+          Navigation
+        </p>
+
+        {/* Nav grid — scrollable */}
+        <div className="overflow-y-auto px-4 pb-20" style={{ maxHeight: "calc(78vh - 130px)" }}>
+          {moreItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              All sections are in the bar below.
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2.5 pb-2">
+              {moreItems.map(({ href, label, icon: Icon }) => {
+                const active =
+                  pathname === href ||
+                  (href !== "/dashboard" && pathname.startsWith(href));
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMoreOpen(false)}
+                    className={cn(
+                      "flex flex-col items-center gap-2 px-2 py-3.5 rounded-2xl border text-center transition-all active:scale-95",
+                      active
+                        ? "bg-primary/10 border-primary/40 text-primary shadow-sm"
+                        : "bg-muted/40 border-border/60 text-muted-foreground hover:border-primary/25 hover:text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                      active ? "bg-primary/15" : "bg-background border border-border"
+                    )}>
+                      <Icon size={20} className={active ? "text-primary" : ""} />
+                    </div>
+                    <span className="text-[11px] font-medium leading-tight line-clamp-2">{label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom close bar */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-card/95 backdrop-blur-sm border-t border-border flex items-center justify-center px-4">
+          <button
+            onClick={() => setMoreOpen(false)}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-muted border border-border text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X size={14} />
+            Close
+          </button>
+        </div>
       </div>
-    </nav>
+    </>
   );
 }
